@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="bg-white shadow sm:rounded-lg overflow-hidden mb-6">
+    <div class="px-6 py-5 bg-gradient-to-r from-indigo-600 to-purple-600">
+        <h1 class="text-3xl font-bold text-white">{{ theater.name }}</h1>
+    </div>
+</div>
+
+<div class="space-y-6">
+    {% for show_id, show_data in shows_data.items() %}
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">
+                <a href="/public/show/{{ show_data.show.id }}" class="text-indigo-600 hover:text-indigo-800">
+                    {{ show_data.show.title }}
+                </a>
+            </h2>
+        </div>
+        
+        <div class="px-6 py-4">
+            {% for production in show_data.productions %}
+            <div class="mb-6 pb-6 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-lg font-medium text-gray-900">{{ production.year }}</p>
+                        {% if production.start_date %}
+                        <p class="text-gray-600">
+                            {{ production.start_date }}
+                            {% if production.end_date %}
+                            - {{ production.end_date }}
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% if production.preview_image %}
+                    <img src="{{ url_for('static', filename=production.preview_image) }}" 
+                         alt="Preview" 
+                         class="h-20 w-auto object-cover rounded">
+                    {% endif %}
+                </div>
+                
+                {% set categories = production.credits | map(attribute='category') | unique | list %}
+                {% for category in categories %}
+                <div class="mb-4">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">{{ category }}</h4>
+                    <div class="flex flex-wrap gap-2">
+                        {% for credit in production.credits %}
+                        {% if credit.category == category %}
+                        <div class="flex items-center gap-1">
+                            <a href="/public/actor/{{ credit.person_id }}" class="text-indigo-600 hover:text-indigo-800 text-sm">
+                                {{ credit.person.name }}
+                            </a>
+                            {% if credit.is_equity %}
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                *
+                            </span>
+                            {% endif %}
+                            {% if credit.role and credit.role != category %}
+                            <span class="text-gray-500 text-xs">({{ credit.role }})</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

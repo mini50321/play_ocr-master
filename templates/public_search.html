@@ -1,0 +1,115 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="bg-white shadow sm:rounded-lg overflow-hidden mb-6">
+    <div class="px-6 py-5">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6">Search</h1>
+        
+        <form method="GET" action="/public/search" class="mb-6">
+            <div class="flex gap-4">
+                <input type="text" 
+                       name="q" 
+                       value="{{ query }}" 
+                       placeholder="Search actors, shows, theaters..." 
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                
+                <select name="type" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All</option>
+                    <option value="actors" {% if filter_type == 'actors' %}selected{% endif %}>Actors</option>
+                    <option value="shows" {% if filter_type == 'shows' %}selected{% endif %}>Shows</option>
+                    <option value="theaters" {% if filter_type == 'theaters' %}selected{% endif %}>Theaters</option>
+                </select>
+                
+                <select name="equity" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="all" {% if equity_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="equity" {% if equity_filter == 'equity' %}selected{% endif %}>Equity Only</option>
+                    <option value="non-equity" {% if equity_filter == 'non-equity' %}selected{% endif %}>Non-Equity Only</option>
+                </select>
+                
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+<div class="space-y-6">
+    {% if results.actors %}
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Actors ({{ results.actors|length }})</h2>
+        </div>
+        <div class="px-6 py-4">
+            <div class="space-y-3">
+                {% for actor in results.actors %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <a href="/public/actor/{{ actor.id }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
+                        {{ actor.name }}
+                    </a>
+                    <span class="text-gray-500 text-sm">{{ actor.credits_count }} credits</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.shows %}
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Shows ({{ results.shows|length }})</h2>
+        </div>
+        <div class="px-6 py-4">
+            <div class="space-y-3">
+                {% for show in results.shows %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <a href="/public/show/{{ show.id }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
+                        {{ show.title }}
+                    </a>
+                    <span class="text-gray-500 text-sm">{{ show.productions_count }} production(s)</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.theaters %}
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Theaters ({{ results.theaters|length }})</h2>
+        </div>
+        <div class="px-6 py-4">
+            <div class="space-y-3">
+                {% for theater in results.theaters %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <a href="/public/theater/{{ theater.id }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
+                        {{ theater.name }}
+                    </a>
+                    <span class="text-gray-500 text-sm">{{ theater.productions_count }} production(s)</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not results.actors and not results.shows and not results.theaters %}
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-8 text-center">
+            <p class="text-gray-500 text-lg">No results found for "{{ query }}"</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="bg-white shadow sm:rounded-lg overflow-hidden">
+    <div class="px-6 py-8 text-center">
+        <p class="text-gray-500 text-lg">Enter a search term to begin</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

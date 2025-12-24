@@ -1,0 +1,27 @@
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment Variables & Secrets
+.env
+ai_key.json
+
+# Database
+instance/
+*.db
+*.sqlite3
+
+# Uploads
+uploads/
+
+# Test Data
+testdata/
+
+# OS Specific
+.DS_Store
