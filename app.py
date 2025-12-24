@@ -16,9 +16,28 @@ def init_db():
     with app.app_context():
         db.create_all()
         if not Theater.query.first():
-            db.session.add(Theater(name="THE ARGYLE THEATRE", joomla_id=101))
-            db.session.add(Theater(name="The Gateway", joomla_id=102))
-            db.session.add(Theater(name="John W. Engeman Theater", joomla_id=103))
+            db.session.add(Theater(name="THE ARGYLE THEATRE", joomla_id=101, latitude="40.7128", longitude="-74.0060", city="New York", state="NY"))
+            db.session.add(Theater(name="The Gateway", joomla_id=102, latitude="40.7589", longitude="-73.9851", city="New York", state="NY"))
+            db.session.add(Theater(name="John W. Engeman Theater", joomla_id=103, latitude="40.9012", longitude="-73.3434", city="Northport", state="NY"))
+            db.session.commit()
+        else:
+            for theater in Theater.query.all():
+                if not theater.latitude or not theater.longitude:
+                    if theater.name == "THE ARGYLE THEATRE":
+                        theater.latitude = "40.7128"
+                        theater.longitude = "-74.0060"
+                        theater.city = "New York"
+                        theater.state = "NY"
+                    elif theater.name == "The Gateway":
+                        theater.latitude = "40.7589"
+                        theater.longitude = "-73.9851"
+                        theater.city = "New York"
+                        theater.state = "NY"
+                    elif theater.name == "John W. Engeman Theater":
+                        theater.latitude = "40.9012"
+                        theater.longitude = "-73.3434"
+                        theater.city = "Northport"
+                        theater.state = "NY"
             db.session.commit()
 
 init_db()
@@ -428,6 +447,15 @@ def public_theater(id):
     return render_template("public_theater.html", 
                          theater=theater, 
                          shows_data=shows_data)
+
+@app.route("/admin/add-sample-data")
+def add_sample_data_route():
+    try:
+        from add_sample_data import add_sample_data
+        add_sample_data()
+        return jsonify({"success": True, "message": "Sample data added successfully!"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/public/search")
 def public_search():
