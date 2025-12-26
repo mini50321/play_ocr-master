@@ -15,7 +15,6 @@
     </div>
 
     <div class="border-t border-gray-200 p-6 space-y-6">
-        <!-- Show Details -->
         <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Show Title</label>
@@ -51,7 +50,6 @@
                 <p id="youtube_error" class="mt-1 text-sm text-red-600" style="display: none;">Invalid YouTube URL.
                     Please enter a valid link (e.g., https://youtu.be/EXAMPLE1234).</p>
             </div>
-            <!-- Preview Image (Hidden input to persist path) -->
             <input type="hidden" id="preview_image" value="{{ data.preview_image or '' }}">
             {% if data.preview_image %}
             <div class="col-span-2">
@@ -61,7 +59,6 @@
             </div>
             {% endif %}
 
-            <!-- Watch Video Button (Visible if URL exists) -->
             <div class="col-span-2" id="watch_video_container" style="display: none;">
                 <label class="block text-sm font-medium text-gray-700">Video</label>
                 <div class="mt-2 text-left">
@@ -79,7 +76,6 @@
             </div>
         </div>
 
-        <!-- Person List -->
         <div>
             <h4 class="text-md font-bold text-gray-900 mb-4 border-b pb-2">Credits (Cast, Creative, Crew, Musicians)
             </h4>
@@ -169,7 +165,6 @@
     </div>
 </div>
 
-<!-- Video Modal Structure -->
 <div id="videoModal" class="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50"
     style="display: none;">
     <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
@@ -228,17 +223,14 @@
         const role = row.querySelector('.role-input').value;
         const isEq = row.querySelector('.equity-input').checked;
 
-        // Split by comma or newline
         const parts = text.split(/[\n,]+/).map(s => s.trim()).filter(s => s);
 
-        if (parts.length <= 1) return; // Nothing to split
+        if (parts.length <= 1) return; 
 
         const tbody = document.querySelector('#castTable tbody');
 
-        // Update current row with first part
         actorInput.value = parts[0];
 
-        // Add new rows for others
         for (let i = 1; i < parts.length; i++) {
             const newRow = document.createElement('tr');
             newRow.innerHTML = `
@@ -262,23 +254,15 @@
                     <button onclick="this.closest('tr').remove()" class="text-red-600 hover:text-red-900">Delete</button>
                 </td>
             `;
-            // Insert after current row
             if (i === 1) {
                 row.after(newRow);
             } else {
-                // Determine insertion point (simple append after previous inserted)
-                // Actually, just append after row works if we iterate backwards or keep ref.
-                // Or simplified: insert after 'row' and then update 'row' to be the new one?
-                // Easiest: tbody.insertBefore(newRow, row.nextSibling)
-                // Need to be careful of order.
-                // Let's just append to end? No, split usually implies expanding in place.
-                // Insert after row
                 row.parentNode.insertBefore(newRow, row.nextSibling);
             }
         }
     }
 
-    function showNotificationModal(title, message, type = 'info') {
+    function showNotificationModal(title, message, type = 'info', onConfirm = null, confirmText = 'OK', cancelText = null) {
         const modal = document.getElementById('notificationModal');
         const modalTitle = document.getElementById('modal-title');
         const modalMessage = document.getElementById('modal-message');
@@ -299,13 +283,35 @@
         }
         
         modal.classList.remove('hidden');
+
+        const modalActions = document.getElementById('modal-actions');
+        modalActions.innerHTML = ''; 
+
+        if (onConfirm) {
+            const confirmButton = document.createElement('button');
+            confirmButton.type = 'button';
+            confirmButton.onclick = () => { onConfirm(); hideNotificationModal(true); };
+            confirmButton.className = 'w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm';
+            confirmButton.textContent = confirmText;
+            modalActions.appendChild(confirmButton);
+        }
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.onclick = () => hideNotificationModal(true);
+        closeButton.className = 'mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+        closeButton.textContent = cancelText || 'OK';
+        modalActions.appendChild(closeButton);
     }
     
-    function hideNotificationModal() {
+    function hideNotificationModal(noRedirect = false) {
         document.getElementById('notificationModal').classList.add('hidden');
+        if (!noRedirect) {
+            window.location.href = '/dashboard';
+        }
     }
 
-    async function saveData() {
+    async function saveData(override = false) {
         const show_title = document.getElementById('show_title').value;
         const theatre_name = document.getElementById('theatre_name').value;
         const production_year = document.getElementById('production_year').value;
@@ -335,8 +341,8 @@
             preview_image,
             youtube_url,
             credits,
-            production_id: {{ data.production_id | default ('null')
-    }}
+            production_id: {{ data.production_id | default ('null') }},
+            override: override
         };
 
     try {
@@ -348,23 +354,29 @@
         const result = await response.json();
 
         if (response.ok) {
-            showNotificationModal('Success', 'Data saved successfully!', 'success');
+            showNotificationModal('Success', 'Data saved successfully!', 'success', null, 'OK', null);
             setTimeout(() => {
                 window.location.href = '/dashboard';
             }, 1500);
         } else {
             if (response.status === 409) {
-                showNotificationModal('Duplicate Production', result.message || result.error, 'error');
+                showNotificationModal(
+                    'Duplicate Production',
+                    result.message || result.error,
+                    'error',
+                    () => saveData(true), 
+                    'Override Existing Playbill',
+                    'Cancel'
+                );
             } else {
-                showNotificationModal('Error', result.error || 'An error occurred while saving', 'error');
+                showNotificationModal('Error', result.error || 'An error occurred while saving', 'error', null, 'OK', null);
             }
         }
     } catch (e) {
-        showNotificationModal('Network Error', 'Unable to connect to server. Please check your connection and try again.', 'error');
+        showNotificationModal('Network Error', 'Unable to connect to server. Please check your connection and try again.', 'error', null, 'OK', null);
     }
     }
 
-    // Auto-update production year from start date
     document.addEventListener('DOMContentLoaded', function () {
         const startDateInput = document.getElementById('start_date');
         const productionYearInput = document.getElementById('production_year');
@@ -372,7 +384,6 @@
         if (startDateInput && productionYearInput) {
             startDateInput.addEventListener('input', function (e) {
                 const val = e.target.value;
-                // Matches 4 digits starting with 19 or 20 (e.g. 1999, 2023)
                 const yearMatch = val.match(/(?:19|20)\d{2}/);
                 if (yearMatch) {
                     productionYearInput.value = yearMatch[0];
@@ -381,7 +392,6 @@
         }
     });
 
-    // YouTube Logic
     const youtubeInput = document.getElementById('youtube_url');
     const watchContainer = document.getElementById('watch_video_container');
     const urlDisplay = document.getElementById('video_url_display');
@@ -398,7 +408,6 @@
             return;
         }
 
-        // Extract Video ID
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
         const match = url.match(regExp);
 
@@ -414,12 +423,10 @@
         }
     }
 
-    // Modal Functions
     function openVideoModal() {
         if (!currentVideoId) return;
         const modal = document.getElementById('videoModal');
         const frame = document.getElementById('modalVideoFrame');
-        // Add autoplay=1 to start playing immediately
         frame.src = `https://www.youtube.com/embed/${currentVideoId}?autoplay=1`;
         modal.style.display = 'block';
     }
@@ -429,101 +436,13 @@
         const frame = document.getElementById('modalVideoFrame');
         if (!modal || !frame) return;
 
-        // Stop video by clearing src
         frame.src = '';
         modal.style.display = 'none';
     }
 
     if (youtubeInput) {
         youtubeInput.addEventListener('input', updateVideoPreview);
-        // Run on load
         updateVideoPreview();
-    }
-
-    function showModal(title, message, type = 'info') {
-        const modal = document.getElementById('notificationModal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalIcon = document.getElementById('modal-icon');
-        
-        modalTitle.textContent = title;
-        modalMessage.textContent = message;
-        
-        if (type === 'success') {
-            modalIcon.innerHTML = '<svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-            modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100';
-        } else if (type === 'error') {
-            modalIcon.innerHTML = '<svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-            modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100';
-        } else {
-            modalIcon.innerHTML = '<svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
-            modalIcon.className = 'mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100';
-        }
-        
-        modal.classList.remove('hidden');
-    }
-    
-    function hideModal() {
-        document.getElementById('notificationModal').classList.add('hidden');
-    }
-
-    async function saveData() {
-        const show_title = document.getElementById('show_title').value;
-        const theatre_name = document.getElementById('theatre_name').value;
-        const production_year = document.getElementById('production_year').value;
-        const start_date = document.getElementById('start_date').value;
-        const end_date = document.getElementById('end_date').value;
-        const preview_image = document.getElementById('preview_image').value;
-        const youtube_url = document.getElementById('youtube_url').value;
-
-        const credits = [];
-        document.querySelectorAll('#castTable tbody tr').forEach(row => {
-            const category = row.querySelector('.category-input').value;
-            const role = row.querySelector('.role-input').value;
-            const actor = row.querySelector('.actor-input').value;
-            const is_equity = row.querySelector('.equity-input').checked;
-
-            if (role || actor) {
-                credits.push({ category, role, actor, is_equity });
-            }
-        });
-
-        const payload = {
-            show_title,
-            theatre_name,
-            production_year,
-            start_date,
-            end_date,
-            preview_image,
-            youtube_url,
-            credits,
-            production_id: {{ data.production_id | default ('null')
-    }}
-        };
-
-    try {
-        const response = await fetch('/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const result = await response.json();
-
-        if (response.ok) {
-            showNotificationModal('Success', 'Data saved successfully!', 'success');
-            setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 1500);
-        } else {
-            if (response.status === 409) {
-                showNotificationModal('Duplicate Production', result.message || result.error, 'error');
-            } else {
-                showNotificationModal('Error', result.error || 'An error occurred while saving', 'error');
-            }
-        }
-    } catch (e) {
-        showNotificationModal('Network Error', 'Unable to connect to server. Please check your connection and try again.', 'error');
-    }
     }
 </script>
 
@@ -548,10 +467,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button" onclick="hideNotificationModal()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
-                    OK
-                </button>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse" id="modal-actions">
             </div>
         </div>
     </div>

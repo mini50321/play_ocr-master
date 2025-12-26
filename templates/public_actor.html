@@ -89,26 +89,28 @@
             </div>
         </div>
 
-        {% if theaters_map %}
         <div class="bg-white shadow sm:rounded-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h2 class="text-lg font-semibold text-gray-900">Theater Locations</h2>
             </div>
             <div class="px-6 py-4">
+                {% if theaters_map and theaters_map|length > 0 %}
                 <div id="actor-map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">Map unavailable - theater location data not available</p>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
 
-{% if theaters_map %}
+{% if theaters_map and theaters_map|length > 0 %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     const theaters = {{ theaters_map | tojson }};
     
-    if (theaters.length > 0) {
+    if (theaters && theaters.length > 0) {
         const map = L.map('actor-map').setView([39.8283, -98.5795], 4);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -118,15 +120,17 @@
         const bounds = [];
         
         theaters.forEach(theater => {
-            const marker = L.marker([theater.lat, theater.lng]).addTo(map);
-            const popupContent = `
-                <div style="padding: 8px;">
-                    <strong><a href="/public/theater/${theater.id}" style="color: #4f46e5; text-decoration: none;">${theater.name}</a></strong>
-                    ${theater.city ? `<br><span style="color: #6b7280;">${theater.city}${theater.state ? ', ' + theater.state : ''}</span>` : ''}
-                </div>
-            `;
-            marker.bindPopup(popupContent);
-            bounds.push([theater.lat, theater.lng]);
+            if (theater.lat && theater.lng) {
+                const marker = L.marker([theater.lat, theater.lng]).addTo(map);
+                const popupContent = `
+                    <div style="padding: 8px;">
+                        <strong><a href="/public/theater/${theater.id}" style="color: #4f46e5; text-decoration: none;">${theater.name}</a></strong>
+                        ${theater.city ? `<br><span style="color: #6b7280;">${theater.city}${theater.state ? ', ' + theater.state : ''}</span>` : ''}
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+                bounds.push([theater.lat, theater.lng]);
+            }
         });
         
         if (bounds.length > 0) {

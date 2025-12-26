@@ -185,6 +185,7 @@ def save():
     data = request.json
     try:
         production_id = data.get("production_id")
+        override = data.get("override", False)
         
         show_title = data.get("show_title", "Unknown Show")
         show = Show.query.filter_by(title=show_title).first()
@@ -229,24 +230,39 @@ def save():
                 year=final_year
             ).first()
             
-            if existing:
+            if existing and not override:
                 return jsonify({
                     "error": "Duplicate production detected",
                     "message": f"A production of '{show_title}' at '{theater_name}' in {final_year} already exists.",
                     "existing_id": existing.id
                 }), 409
-                
-            production = Production(
-                theater_id=theater.id,
-                show_id=show.id,
-                year=final_year,
-                start_date=data.get("start_date"),
-                end_date=data.get("end_date"),
-                preview_image=data.get("preview_image"),
-                youtube_url=data.get("youtube_url")
-            )
-            db.session.add(production)
-            db.session.flush()
+            elif existing and override:
+                production_id = existing.id
+                production = db.session.get(Production, production_id)
+            
+                production.show_id = show.id
+                production.theater_id = theater.id
+                year_val = data.get("production_year")
+                production.year = int(year_val) if year_val else 2025
+                production.start_date = data.get("start_date")
+                production.end_date = data.get("end_date")
+                production.preview_image = data.get("preview_image")
+                production.youtube_url = data.get("youtube_url")
+            
+                Credit.query.filter_by(production_id=production.id).delete()
+
+            if not production_id:
+                production = Production(
+                    theater_id=theater.id,
+                    show_id=show.id,
+                    year=final_year,
+                    start_date=data.get("start_date"),
+                    end_date=data.get("end_date"),
+                    preview_image=data.get("preview_image"),
+                    youtube_url=data.get("youtube_url")
+                )
+                db.session.add(production)
+                db.session.flush()
 
         for item in data.get("credits", []):
             actor_name = item.get("actor")
