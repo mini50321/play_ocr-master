@@ -549,6 +549,41 @@ def autocomplete_theaters():
     theaters = Theater.query.filter(Theater.name.ilike(f'%{query}%')).limit(10).all()
     return jsonify([theater.name for theater in theaters])
 
+@app.route("/edit_understudies/<int:production_id>", methods=["POST"])
+def edit_understudies(production_id):
+    data = request.json
+    understudies = data.get("understudies", [])
+
+    try:
+        production = db.session.get(Production, production_id)
+        if not production:
+            return jsonify({"error": "Production not found"}), 404
+
+        Credit.query.filter_by(production_id=production.id, category="Understudies").delete()
+
+        for name in understudies:
+            person = Person.query.filter_by(name=name).first()
+            if not person:
+                person = Person(name=name, disciplines="Understudies")
+                db.session.add(person)
+                db.session.flush()
+            
+            credit = Credit(
+                production_id=production.id,
+                person_id=person.id,
+                role="Understudy",
+                category="Understudies",
+                is_equity=False 
+            )
+            db.session.add(credit)
+        
+        db.session.commit()
+        return jsonify({"success": True, "message": "Understudies updated successfully!"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 from joomla_api import joomla_api
 app.register_blueprint(joomla_api)
 
