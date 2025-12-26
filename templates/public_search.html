@@ -15,7 +15,6 @@
                        id="search-input"
                        list="theater-suggestions">
                 <datalist id="theater-suggestions"></datalist>
-                <div id="debug-suggestions" class="text-sm text-gray-600 mt-2"></div>
                 
                 <select name="type" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All</option>
@@ -123,7 +122,6 @@
         const searchInput = document.getElementById('search-input');
         const theaterSuggestions = document.getElementById('theater-suggestions');
         const searchForm = document.getElementById('search-form');
-        const debugSuggestions = document.getElementById('debug-suggestions');
 
         let timeout = null;
 
@@ -135,14 +133,11 @@
             }
 
             timeout = setTimeout(async () => {
-                if (query.length > 0) {
+                if (query.length > 2) {
                     try {
                         const response = await fetch(`/autocomplete/theaters?q=${encodeURIComponent(query)}`);
                         const suggestions = await response.json();
                         
-                        console.log('Autocomplete suggestions received:', suggestions);
-                        debugSuggestions.textContent = `Suggestions: ${suggestions.join(', ')}`;
-
                         theaterSuggestions.innerHTML = '';
                         suggestions.forEach(suggestion => {
                             const option = document.createElement('option');
@@ -151,11 +146,9 @@
                         });
                     } catch (error) {
                         console.error('Error fetching autocomplete suggestions:', error);
-                        debugSuggestions.textContent = `Error: ${error.message}`;
                     }
                 } else {
                     theaterSuggestions.innerHTML = '';
-                    debugSuggestions.textContent = '';
                 }
             }, 300); 
         });

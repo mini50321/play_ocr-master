@@ -546,7 +546,8 @@ def autocomplete_theaters():
     if not query:
         return jsonify([])
     
-    return jsonify(["The Argyle Theatre", "The Gateway", "John W. Engeman Theater", "Broadway Theater"])
+    theaters = Theater.query.filter(Theater.name.ilike(f'%{query}%')).limit(10).all()
+    return jsonify([theater.name for theater in theaters])
 
 from joomla_api import joomla_api
 app.register_blueprint(joomla_api)
