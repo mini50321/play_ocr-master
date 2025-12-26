@@ -16,18 +16,24 @@
                        list="theater-suggestions">
                 <datalist id="theater-suggestions"></datalist>
                 
-                <select name="type" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All</option>
-                    {% for category in categories %}
-                    <option value="{{ category|lower }}" {% if filter_type == category|lower %}selected{% endif %}>{{ category }}</option>
-                    {% endfor %}
-                </select>
+                <div class="flex items-center gap-2">
+                    <label for="category-filter" class="text-gray-700">Category:</label>
+                    <select name="type" id="category-filter" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All</option>
+                        {% for category in categories %}
+                        <option value="{{ category|lower }}" {% if filter_type == category|lower %}selected{% endif %}>{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 
-                <select name="equity" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="all" {% if equity_filter == 'all' %}selected{% endif %}>All</option>
-                    <option value="equity" {% if equity_filter == 'equity' %}selected{% endif %}>Equity Only</option>
-                    <option value="non-equity" {% if equity_filter == 'non-equity' %}selected{% endif %}>Non-Equity Only</option>
-                </select>
+                <div class="flex items-center gap-2">
+                    <label for="equity-filter" class="text-gray-700">Equity Status:</label>
+                    <select name="equity" id="equity-filter" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="all" {% if equity_filter == 'all' %}selected{% endif %}>All</option>
+                        <option value="equity" {% if equity_filter == 'equity' %}selected{% endif %}>Equity Only</option>
+                        <option value="non-equity" {% if equity_filter == 'non-equity' %}selected{% endif %}>Non-Equity Only</option>
+                    </select>
+                </div>
                 
                 <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                     Search

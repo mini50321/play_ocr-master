@@ -28,9 +28,9 @@ def init_db():
     with app.app_context():
         db.create_all()
         if not Theater.query.first():
-            db.session.add(Theater(name="THE ARGYLE THEATRE", joomla_id=101, latitude="40.7128", longitude="-74.0060", city="New York", state="NY"))
-            db.session.add(Theater(name="The Gateway", joomla_id=102, latitude="40.7589", longitude="-73.9851", city="New York", state="NY"))
-            db.session.add(Theater(name="John W. Engeman Theater", joomla_id=103, latitude="40.9012", longitude="-73.3434", city="Northport", state="NY"))
+            db.session.add(Theater(name="THE ARGYLE THEATRE", jooml_id=101, latitude="40.7128", longitude="-74.0060", city="New York", state="NY"))
+            db.session.add(Theater(name="The Gateway", jooml_id=102, latitude="40.7589", longitude="-73.9851", city="New York", state="NY"))
+            db.session.add(Theater(name="John W. Engeman Theater", jooml_id=103, latitude="40.9012", longitude="-73.3434", city="Northport", state="NY"))
             db.session.commit()
         else:
             for theater in Theater.query.all():
@@ -501,26 +501,43 @@ def public_search():
 
     if query:
         if filter_type in ['all', 'actors']:
-            persons = Person.query.filter(
-                Person.name.ilike(f'%{query}%')
-            ).all()
+            person_ids_query = db.session.query(Person.id)\
+                .join(Credit, Person.id == Credit.person_id)\
+                .join(Production, Credit.production_id == Production.id)\
+                .join(Show, Production.show_id == Show.id)\
+                .join(Theater, Production.theater_id == Theater.id)\
+                .filter(
+                    (Person.name.ilike(f'%{query}%')) |
+                    (Show.title.ilike(f'%{query}%')) |
+                    (Theater.name.ilike(f'%{query}%'))
+                )
+
+            if filter_type != 'all':
+                person_ids_query = person_ids_query.filter(Credit.category.ilike(filter_type))
+
+            person_ids = [person_id for person_id, in person_ids_query.distinct().all()]
+            persons = Person.query.filter(Person.id.in_(person_ids)).all()
             
             for person in persons:
-                credits_count = Credit.query.filter_by(person_id=person.id).count()
+                credits_query = Credit.query.filter_by(person_id=person.id)
+                if filter_type != 'all':
+                    credits_query = credits_query.filter(Credit.category.ilike(filter_type))
+
+                credits_count = credits_query.count()
+
                 if equity_filter == 'equity':
-                    credits_count = Credit.query.filter_by(person_id=person.id, is_equity=True).count()
-                    if credits_count == 0:
-                        continue
+                    credits_query = credits_query.filter_by(is_equity=True)
                 elif equity_filter == 'non-equity':
-                    credits_count = Credit.query.filter_by(person_id=person.id, is_equity=False).count()
-                    if credits_count == 0:
-                        continue
+                    credits_query = credits_query.filter_by(is_equity=False)
                 
-                results['actors'].append({
-                    'id': person.id,
-                    'name': person.name,
-                    'credits_count': credits_count
-                })
+                filtered_credits_count = credits_query.count()
+
+                if filtered_credits_count > 0:
+                    results['actors'].append({
+                        'id': person.id,
+                        'name': person.name,
+                        'credits_count': filtered_credits_count
+                    })
         
         if filter_type in ['all', 'shows']:
             shows = Show.query.filter(
