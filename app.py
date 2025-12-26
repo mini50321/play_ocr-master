@@ -28,9 +28,9 @@ def init_db():
     with app.app_context():
         db.create_all()
         if not Theater.query.first():
-            db.session.add(Theater(name="THE ARGYLE THEATRE", jooml_id=101, latitude="40.7128", longitude="-74.0060", city="New York", state="NY"))
-            db.session.add(Theater(name="The Gateway", jooml_id=102, latitude="40.7589", longitude="-73.9851", city="New York", state="NY"))
-            db.session.add(Theater(name="John W. Engeman Theater", jooml_id=103, latitude="40.9012", longitude="-73.3434", city="Northport", state="NY"))
+            db.session.add(Theater(name="THE ARGYLE THEATRE",  latitude="40.7128", longitude="-74.0060", city="New York", state="NY"))
+            db.session.add(Theater(name="The Gateway",  latitude="40.7589", longitude="-73.9851", city="New York", state="NY"))
+            db.session.add(Theater(name="John W. Engeman Theater", latitude="40.9012", longitude="-73.3434", city="Northport", state="NY"))
             db.session.commit()
         else:
             for theater in Theater.query.all():
