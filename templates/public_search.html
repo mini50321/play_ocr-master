@@ -5,13 +5,17 @@
     <div class="px-6 py-5">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Search</h1>
         
-        <form method="GET" action="/public/search" class="mb-6">
+        <form method="GET" action="/public/search" class="mb-6" id="search-form">
             <div class="flex gap-4">
                 <input type="text" 
                        name="q" 
                        value="{{ query }}" 
                        placeholder="Search actors, shows, theaters..." 
-                       class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                       id="search-input"
+                       list="theater-suggestions">
+                <datalist id="theater-suggestions"></datalist>
+                <div id="debug-suggestions" class="text-sm text-gray-600 mt-2"></div>
                 
                 <select name="type" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="all" {% if filter_type == 'all' %}selected{% endif %}>All</option>
@@ -33,7 +37,7 @@
         </form>
     </div>
 </div>
-
+    
 {% if query %}
 <div class="space-y-6">
     {% if results.actors %}
@@ -113,3 +117,55 @@
 {% endif %}
 {% endblock %}
 
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('search-input');
+        const theaterSuggestions = document.getElementById('theater-suggestions');
+        const searchForm = document.getElementById('search-form');
+        const debugSuggestions = document.getElementById('debug-suggestions');
+
+        let timeout = null;
+
+        searchInput.addEventListener('input', (event) => {
+            const query = event.target.value;
+
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+
+            timeout = setTimeout(async () => {
+                if (query.length > 0) {
+                    try {
+                        const response = await fetch(`/autocomplete/theaters?q=${encodeURIComponent(query)}`);
+                        const suggestions = await response.json();
+                        
+                        console.log('Autocomplete suggestions received:', suggestions);
+                        debugSuggestions.textContent = `Suggestions: ${suggestions.join(', ')}`;
+
+                        theaterSuggestions.innerHTML = '';
+                        suggestions.forEach(suggestion => {
+                            const option = document.createElement('option');
+                            option.value = suggestion;
+                            theaterSuggestions.appendChild(option);
+                        });
+                    } catch (error) {
+                        console.error('Error fetching autocomplete suggestions:', error);
+                        debugSuggestions.textContent = `Error: ${error.message}`;
+                    }
+                } else {
+                    theaterSuggestions.innerHTML = '';
+                    debugSuggestions.textContent = '';
+                }
+            }, 300); 
+        });
+
+        searchForm.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                searchForm.submit();
+            }
+        });
+    });
+</script>
+{% endblock %}

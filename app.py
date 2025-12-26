@@ -540,6 +540,14 @@ def public_search():
                          equity_filter=equity_filter,
                          results=results)
 
+@app.route("/autocomplete/theaters")
+def autocomplete_theaters():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([])
+    
+    return jsonify(["The Argyle Theatre", "The Gateway", "John W. Engeman Theater", "Broadway Theater"])
+
 from joomla_api import joomla_api
 app.register_blueprint(joomla_api)
 
