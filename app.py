@@ -10,6 +10,18 @@ app = Flask(__name__)
 app.config.from_object(Config)
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
+# Global categories list
+ALL_CATEGORIES = [
+    'Cast',
+    'Creative',
+    'Musician',
+    'Crew',
+    'Swings',
+    'Understudies',
+    'Dance Captain',
+    'Ensemble'
+]
+
 db.init_app(app)
 
 def init_db():
@@ -485,6 +497,8 @@ def public_search():
         'theaters': []
     }
     
+    all_categories = ALL_CATEGORIES
+
     if query:
         if filter_type in ['all', 'actors']:
             persons = Person.query.filter(
@@ -538,7 +552,8 @@ def public_search():
                          query=query,
                          filter_type=filter_type,
                          equity_filter=equity_filter,
-                         results=results)
+                         results=results,
+                         categories=all_categories)
 
 @app.route("/autocomplete/theaters")
 def autocomplete_theaters():
