@@ -10,7 +10,6 @@ app = Flask(__name__)
 app.config.from_object(Config)
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-# Global categories list
 ALL_CATEGORIES = [
     'Cast',
     'Creative',
