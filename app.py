@@ -500,7 +500,9 @@ def public_search():
     all_categories = ALL_CATEGORIES
 
     if query:
-        if filter_type in ['all', 'actors']:
+        is_category_filter = filter_type not in ['all', 'actors', 'shows', 'theaters']
+        
+        if filter_type in ['all', 'actors'] or is_category_filter:
             person_ids_query = db.session.query(Person.id)\
                 .join(Credit, Person.id == Credit.person_id)\
                 .join(Production, Credit.production_id == Production.id)\
@@ -512,7 +514,7 @@ def public_search():
                     (Theater.name.ilike(f'%{query}%'))
                 )
 
-            if filter_type != 'all':
+            if is_category_filter:
                 person_ids_query = person_ids_query.filter(Credit.category.ilike(filter_type))
 
             person_ids = [person_id for person_id, in person_ids_query.distinct().all()]
@@ -520,10 +522,8 @@ def public_search():
             
             for person in persons:
                 credits_query = Credit.query.filter_by(person_id=person.id)
-                if filter_type != 'all':
+                if is_category_filter:
                     credits_query = credits_query.filter(Credit.category.ilike(filter_type))
-
-                credits_count = credits_query.count()
 
                 if equity_filter == 'equity':
                     credits_query = credits_query.filter_by(is_equity=True)
