@@ -142,7 +142,7 @@
             }
 
             timeout = setTimeout(async () => {
-                if (query.length >= 0) {
+                if (query.length >= 2) {
                     try {
                         const response = await fetch(`/autocomplete/search?q=${encodeURIComponent(query)}`);
                         if (!response.ok) {
