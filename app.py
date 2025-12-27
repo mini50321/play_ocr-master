@@ -60,103 +60,115 @@ def index():
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
-    
-    if file and file.filename.endswith(".pdf"):
-        filename = secure_filename(file.filename)
-        path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(path)
+    path = None
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "No file part"}), 400
+        file = request.files["file"]
+        if file.filename == "":
+            return jsonify({"error": "No selected file"}), 400
         
-        try:
-            data = process_pdf(path)
-        except Exception as e:
-            import traceback
-            error_msg = str(e)
-            traceback.print_exc()
-            return jsonify({"error": f"Extraction failed: {error_msg}"}), 500
-        finally:
-            import time
-            time.sleep(0.1)
-            max_retries = 5
-            for attempt in range(max_retries):
-                try:
-                    if os.path.exists(path):
-                        os.remove(path)
-                    break
-                except PermissionError:
-                    if attempt < max_retries - 1:
-                        time.sleep(0.2)
-                    else:
-                        print(f"Warning: Could not delete {path} - file may be locked")
-                
-        if not data:
-            from config import Config
-            if Config.TEST_MODE:
-                return jsonify({"error": "Extraction failed: Test mode mock data generation failed"}), 500
-            else:
-                return jsonify({
-                    "error": "Extraction failed: No data returned from API",
-                    "message": "This may be due to API region restrictions. Enable TEST_MODE=true in .env to test with mock data."
-                }), 500
-
-        all_credits = []
-        categories_map = [
-            ('cast', 'Cast'), 
-            ('creative', 'Creative'), 
-            ('musicians', 'Musician'), 
-            ('crew', 'Crew'),
-            ('swings', 'Swings'),
-            ('understudies', 'Understudies'),
-            ('dance_captains', 'Dance Captain')
-        ]
-        
-        for cat_key, cat_name in categories_map:
-            items = data.get(cat_key, [])
-            if items:
-                for item in items:
-                    if isinstance(item, str):
-                        is_eq = False
-                        clean_name = item
-                        if "*" in item:
-                            is_eq = True
-                            clean_name = item.replace("*", "").strip()
-                        
-                        all_credits.append({
-                            'cat': cat_name,
-                            'role': cat_name,
-                            'actor': clean_name,
-                            'is_equity': is_eq
-                        })
-                    elif isinstance(item, dict):
-                        item['cat'] = cat_name
-                        if 'is_equity' not in item:
-                            item['is_equity'] = False
-                        all_credits.append(item)
+        if file and file.filename.endswith(".pdf"):
+            filename = secure_filename(file.filename)
+            path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            file.save(path)
+            
+            try:
+                data = process_pdf(path)
+            except Exception as e:
+                import traceback
+                error_msg = str(e)
+                traceback.print_exc()
+                return jsonify({"error": f"Extraction failed: {error_msg}"}), 500
+            finally:
+                import time
+                time.sleep(0.1)
+                max_retries = 5
+                for attempt in range(max_retries):
+                    try:
+                        if path and os.path.exists(path):
+                            os.remove(path)
+                        break
+                    except PermissionError:
+                        if attempt < max_retries - 1:
+                            time.sleep(0.2)
+                        else:
+                            print(f"Warning: Could not delete {path} - file may be locked")
                     
-        ensemble_list = data.get('ensemble', [])
-        for name in ensemble_list:
-             is_eq = False
-             clean_name = name
-             if "*" in name:
-                 is_eq = True
-                 clean_name = name.replace("*", "").strip()
-             
-             all_credits.append({
-                 'cat': 'Ensemble',
-                 'role': 'Ensemble',
-                 'actor': clean_name,
-                 'is_equity': is_eq
-             })
+            if not data:
+                from config import Config
+                if Config.TEST_MODE:
+                    return jsonify({"error": "Extraction failed: Test mode mock data generation failed"}), 500
+                else:
+                    return jsonify({
+                        "error": "Extraction failed: No data returned from API",
+                        "message": "This may be due to API region restrictions. Enable TEST_MODE=true in .env to test with mock data."
+                    }), 500
 
-        data['all_credits'] = all_credits
+            all_credits = []
+            categories_map = [
+                ('cast', 'Cast'), 
+                ('creative', 'Creative'), 
+                ('musicians', 'Musician'), 
+                ('crew', 'Crew'),
+                ('swings', 'Swings'),
+                ('understudies', 'Understudies'),
+                ('dance_captains', 'Dance Captain')
+            ]
+            
+            for cat_key, cat_name in categories_map:
+                items = data.get(cat_key, [])
+                if items:
+                    for item in items:
+                        if isinstance(item, str):
+                            is_eq = False
+                            clean_name = item
+                            if "*" in item:
+                                is_eq = True
+                                clean_name = item.replace("*", "").strip()
+                            
+                            all_credits.append({
+                                'cat': cat_name,
+                                'role': cat_name,
+                                'actor': clean_name,
+                                'is_equity': is_eq
+                            })
+                        elif isinstance(item, dict):
+                            item['cat'] = cat_name
+                            if 'is_equity' not in item:
+                                item['is_equity'] = False
+                            all_credits.append(item)
+                        
+            ensemble_list = data.get('ensemble', [])
+            for name in ensemble_list:
+                 is_eq = False
+                 clean_name = name
+                 if "*" in name:
+                     is_eq = True
+                     clean_name = name.replace("*", "").strip()
+                 
+                 all_credits.append({
+                     'cat': 'Ensemble',
+                     'role': 'Ensemble',
+                     'actor': clean_name,
+                     'is_equity': is_eq
+                 })
 
-        return render_template("review.html", data=data, filename=filename)
-    
-    return jsonify({"error": "Invalid file type"}), 400
+            data['all_credits'] = all_credits
+
+            return render_template("review.html", data=data, filename=filename)
+        
+        return jsonify({"error": "Invalid file type"}), 400
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        traceback.print_exc()
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except:
+                pass
+        return jsonify({"error": f"Internal server error: {error_msg}"}), 500
 
 @app.route("/dashboard")
 def dashboard():
@@ -546,11 +558,12 @@ def public_search():
             
             for show in shows:
                 prod_count = Production.query.filter_by(show_id=show.id).count()
-                results['shows'].append({
-                    'id': show.id,
-                    'title': show.title,
-                    'productions_count': prod_count
-                })
+                if prod_count > 0:
+                    results['shows'].append({
+                        'id': show.id,
+                        'title': show.title,
+                        'productions_count': prod_count
+                    })
         
         if filter_type in ['all', 'theaters']:
             theaters = Theater.query.filter(
@@ -559,11 +572,12 @@ def public_search():
             
             for theater in theaters:
                 prod_count = Production.query.filter_by(theater_id=theater.id).count()
-                results['theaters'].append({
-                    'id': theater.id,
-                    'name': theater.name,
-                    'productions_count': prod_count
-                })
+                if prod_count > 0:
+                    results['theaters'].append({
+                        'id': theater.id,
+                        'name': theater.name,
+                        'productions_count': prod_count
+                    })
     
     return render_template("public_search.html", 
                          query=query,
