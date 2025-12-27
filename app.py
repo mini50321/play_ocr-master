@@ -70,6 +70,18 @@ def upload():
         if file and file.filename.endswith(".pdf"):
             filename = secure_filename(file.filename)
             path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            
+            try:
+                file.seek(0, 2)
+                file_size = file.tell()
+                file.seek(0)
+                
+                max_size = 10 * 1024 * 1024
+                if file_size > max_size:
+                    return jsonify({"error": f"File too large. Maximum size is {max_size // (1024*1024)}MB"}), 400
+            except:
+                pass
+            
             file.save(path)
             
             try:

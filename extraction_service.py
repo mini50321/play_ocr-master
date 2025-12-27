@@ -203,16 +203,25 @@ def get_pdf_images(pdf_path):
     doc = None
     try:
         doc = fitz.open(pdf_path)
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            img_bytes = pix.tobytes("jpeg")
-            b64_img = base64.b64encode(img_bytes).decode('utf-8')
-            images.append(b64_img)
-            pix = None
-            page = None
+        max_pages = 10
+        page_count = min(len(doc), max_pages)
+        
+        for page_num in range(page_count):
+            try:
+                page = doc.load_page(page_num)
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                img_bytes = pix.tobytes("jpeg")
+                b64_img = base64.b64encode(img_bytes).decode('utf-8')
+                images.append(b64_img)
+                pix = None
+                page = None
+            except Exception as e:
+                print(f"Error processing page {page_num}: {e}")
+                continue
     except Exception as e:
         print(f"Error processing PDF {pdf_path}: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         if doc:
             doc.close()
@@ -337,8 +346,14 @@ def process_pdf(pdf_path):
 
     max_retries = 3
     for attempt in range(max_retries):
+        response = None
         try:
-            response = requests.post(API_URL, json=payload, headers={"Content-Type": "application/json"})
+            response = requests.post(
+                API_URL, 
+                json=payload, 
+                headers={"Content-Type": "application/json"},
+                timeout=(30, 120)
+            )
             
             if response.status_code == 429:
                 wait_time = (attempt + 1) * 5
@@ -349,6 +364,20 @@ def process_pdf(pdf_path):
             response.raise_for_status()
             result = response.json()
             
+            if not result.get('candidates') or len(result['candidates']) == 0:
+                print("API returned no candidates")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                return None
+            
+            if 'content' not in result['candidates'][0] or 'parts' not in result['candidates'][0]['content']:
+                print("Unexpected API response structure")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                return None
+            
             content_text = result['candidates'][0]['content']['parts'][0]['text']
             content_text = content_text.replace("```json", "").replace("```", "").strip()
             
@@ -357,11 +386,20 @@ def process_pdf(pdf_path):
                 data['preview_image'] = preview_image_path
             return data
 
-        except Exception as e:
-            print(f"Error calling API (attempt {attempt + 1}/{max_retries}): {e}")
-            if 'response' in locals():
+        except requests.exceptions.Timeout:
+            print(f"API request timeout (attempt {attempt + 1}/{max_retries})")
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"API request error (attempt {attempt + 1}/{max_retries}): {e}")
+            if response:
                 print(f"Status Code: {response.status_code}")
-                print(f"API Response: {response.text[:500]}")
+                try:
+                    print(f"API Response: {response.text[:500]}")
+                except:
+                    pass
                 
                 if response.status_code == 400:
                     try:
@@ -370,14 +408,40 @@ def process_pdf(pdf_path):
                             error_msg = error_data['error']['message']
                             if 'location' in error_msg.lower() or 'region' in error_msg.lower():
                                 print("Error: Gemini API region restriction")
+                                return None
                     except:
                         pass
                         
-            if 'response' in locals() and response.status_code == 429:
-                pass 
+            if response and response.status_code == 429:
+                wait_time = (attempt + 1) * 5
+                if attempt < max_retries - 1:
+                    time.sleep(wait_time)
+                    continue
+            elif attempt < max_retries - 1:
+                time.sleep(2)
+                continue
             else:
                 import traceback
                 traceback.print_exc()
                 break
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            print(f"Error parsing API response (attempt {attempt + 1}/{max_retries}): {e}")
+            if response:
+                try:
+                    print(f"Response text: {response.text[:500]}")
+                except:
+                    pass
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            return None
+        except Exception as e:
+            print(f"Unexpected error (attempt {attempt + 1}/{max_retries}): {e}")
+            import traceback
+            traceback.print_exc()
+            if attempt < max_retries - 1:
+                time.sleep(2)
+                continue
+            break
     
     return None
