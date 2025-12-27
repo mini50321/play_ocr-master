@@ -40,15 +40,53 @@
         <div class="px-6 py-4">
             {% for category, credits_list in prod_data.credits.items() %}
             <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">{{ category }}</h3>
-                {% if category == 'Understudies' %}
-                <div class="p-2 bg-gray-50 rounded">
-                    <textarea id="understudies-{{ prod_data.production.id }}" 
-                              class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                              rows="4">{% for credit in credits_list %}{{ credit.person_name }}{% if not loop.last %}, {% endif %}{% endfor %}</textarea>
+                <div class="flex items-center gap-2 mb-3">
+                    <h3 class="text-lg font-semibold text-gray-800">{{ category }}</h3>
+                    {% if category == 'Understudies' %}
                     <button type="button" 
-                            onclick="saveUnderstudies({{ prod_data.production.id }})"
-                            class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Understudies</button>
+                            onclick="toggleEditUnderstudies({{ prod_data.production.id }})"
+                            class="text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                            id="edit-icon-{{ prod_data.production.id }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    {% endif %}
+                </div>
+                {% if category == 'Understudies' %}
+                <div id="understudies-display-{{ prod_data.production.id }}">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {% for credit in credits_list %}
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <a href="/public/actor/{{ credit.person_id }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                                {{ credit.person_name }}
+                            </a>
+                            {% if credit.is_equity %}
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                *
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% if credits_list|length == 0 %}
+                        <div class="text-gray-500 text-sm p-2">No understudies listed</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div id="understudies-edit-{{ prod_data.production.id }}" class="hidden">
+                    <div class="p-2 bg-gray-50 rounded">
+                        <textarea id="understudies-textarea-{{ prod_data.production.id }}" 
+                                  class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                  rows="4">{% for credit in credits_list %}{{ credit.person_name }}{% if not loop.last %}, {% endif %}{% endfor %}</textarea>
+                        <div class="mt-2 flex gap-2">
+                            <button type="button" 
+                                    onclick="saveUnderstudies({{ prod_data.production.id }})"
+                                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Understudies</button>
+                            <button type="button" 
+                                    onclick="toggleEditUnderstudies({{ prod_data.production.id }})"
+                                    class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">Cancel</button>
+                        </div>
+                    </div>
                 </div>
                 {% else %}
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -79,8 +117,21 @@
 
 {% block scripts %}
 <script>
+    function toggleEditUnderstudies(productionId) {
+        const displayDiv = document.getElementById(`understudies-display-${productionId}`);
+        const editDiv = document.getElementById(`understudies-edit-${productionId}`);
+        
+        if (displayDiv.classList.contains('hidden')) {
+            displayDiv.classList.remove('hidden');
+            editDiv.classList.add('hidden');
+        } else {
+            displayDiv.classList.add('hidden');
+            editDiv.classList.remove('hidden');
+        }
+    }
+
     async function saveUnderstudies(productionId) {
-        const textarea = document.getElementById(`understudies-${productionId}`);
+        const textarea = document.getElementById(`understudies-textarea-${productionId}`);
         const understudyNames = textarea.value.split(',').map(name => name.trim()).filter(name => name.length > 0);
 
         try {
@@ -95,7 +146,10 @@
             const result = await response.json();
 
             if (response.ok) {
-                showNotificationModal('Success', result.message, 'success', null, 'OK', null);
+                toggleEditUnderstudies(productionId);
+                showNotificationModal('Success', result.message, 'success', function() {
+                    location.reload();
+                });
             } else {
                 showNotificationModal('Error', `Error: ${result.error}`, 'error', null, 'OK', null);
             }

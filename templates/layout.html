@@ -43,13 +43,7 @@
             const confirmButton = document.getElementById('modal-confirm-button');
             const cancelButton = document.getElementById('modal-cancel-button');
 
-            confirmButton.textContent = confirmText;
-            confirmButton.onclick = () => {
-                hideNotificationModal(true);
-                if (onConfirm) {
-                    onConfirm();
-                }
-            };
+            confirmButton.classList.add('hidden');
 
             if (cancelText) {
                 cancelButton.textContent = cancelText;
@@ -60,6 +54,13 @@
             }
 
             modal.classList.remove('hidden');
+
+            if (onConfirm) {
+                setTimeout(() => {
+                    hideNotificationModal(true);
+                    onConfirm();
+                }, 1500);
+            }
         }
 
         function hideNotificationModal(noRedirect = false) {
