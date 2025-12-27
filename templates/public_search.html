@@ -38,6 +38,9 @@
                 <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
                     Search
                 </button>
+                <button type="button" id="clear-all-btn" class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">
+                    Clear All
+                </button>
             </div>
         </form>
     </div>
@@ -164,6 +167,11 @@
                 event.preventDefault();
                 searchForm.submit();
             }
+        });
+
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        clearAllBtn.addEventListener('click', () => {
+            window.location.href = '/public/search';
         });
     });
 </script>
