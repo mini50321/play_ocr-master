@@ -581,6 +581,28 @@ def autocomplete_theaters():
     theaters = Theater.query.filter(Theater.name.ilike(f'%{query}%')).limit(10).all()
     return jsonify([theater.name for theater in theaters])
 
+@app.route("/autocomplete/search")
+def autocomplete_search():
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+    
+    suggestions = []
+    
+    actors = Person.query.filter(Person.name.ilike(f'%{query}%')).limit(5).all()
+    for actor in actors:
+        suggestions.append(actor.name)
+    
+    shows = Show.query.filter(Show.title.ilike(f'%{query}%')).limit(5).all()
+    for show in shows:
+        suggestions.append(show.title)
+    
+    theaters = Theater.query.filter(Theater.name.ilike(f'%{query}%')).limit(5).all()
+    for theater in theaters:
+        suggestions.append(theater.name)
+    
+    return jsonify(suggestions[:10])
+
 @app.route("/edit_understudies/<int:production_id>", methods=["POST"])
 def edit_understudies(production_id):
     data = request.json

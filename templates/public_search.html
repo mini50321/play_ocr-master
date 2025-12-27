@@ -142,9 +142,12 @@
             }
 
             timeout = setTimeout(async () => {
-                if (query.length > 0) {
+                if (query.length >= 0) {
                     try {
-                        const response = await fetch(`/autocomplete/theaters?q=${encodeURIComponent(query)}`);
+                        const response = await fetch(`/autocomplete/search?q=${encodeURIComponent(query)}`);
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
                         const suggestions = await response.json();
                         
                         theaterSuggestions.innerHTML = '';
@@ -155,6 +158,7 @@
                         });
                     } catch (error) {
                         console.error('Error fetching autocomplete suggestions:', error);
+                        theaterSuggestions.innerHTML = '';
                     }
                 } else {
                     theaterSuggestions.innerHTML = '';
