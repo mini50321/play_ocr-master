@@ -251,7 +251,7 @@ def upload():
 
 @app.route("/dashboard")
 def dashboard():
-    productions = Production.query.all()
+    productions = Production.query.order_by(Production.id.desc()).all()
     return render_template("dashboard.html", productions=productions)
 
 @app.route("/edit/<int:id>")
