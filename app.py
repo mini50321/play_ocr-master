@@ -106,11 +106,18 @@ def upload():
             file.save(path)
             
             try:
+                print(f"Starting PDF processing for: {filename}")
                 data = process_pdf(path)
+                print(f"PDF processing completed for: {filename}")
+                if data:
+                    print(f"Data extracted successfully. Keys: {list(data.keys())}")
+                else:
+                    print(f"Warning: process_pdf returned None for: {filename}")
             except Exception as e:
                 import traceback
                 error_msg = str(e)
                 traceback.print_exc()
+                print(f"PDF processing error for {filename}: {error_msg}")
                 return jsonify({"error": f"Extraction failed: {error_msg}"}), 500
             finally:
                 import time
@@ -129,12 +136,13 @@ def upload():
                     
             if not data:
                 from config import Config
+                print(f"Error: No data returned from process_pdf for {filename}")
                 if Config.TEST_MODE:
                     return jsonify({"error": "Extraction failed: Test mode mock data generation failed"}), 500
                 else:
                     return jsonify({
                         "error": "Extraction failed: No data returned from API",
-                        "message": "This may be due to API region restrictions. Enable TEST_MODE=true in .env to test with mock data."
+                        "message": "This may be due to API region restrictions, timeout, or API errors. Please try again or enable TEST_MODE=true in .env to test with mock data."
                     }), 500
 
             all_credits = []
@@ -233,9 +241,28 @@ def upload():
                      'is_equity': is_eq
                  })
 
+            if not isinstance(data, dict):
+                print(f"Error: data is not a dictionary, type: {type(data)}")
+                return jsonify({"error": "Invalid data format returned from extraction"}), 500
+            
             data['all_credits'] = all_credits
-
-            return render_template("review.html", data=data, filename=filename)
+            
+            required_fields = ['show_title', 'theatre_name', 'production_year']
+            for field in required_fields:
+                if field not in data:
+                    data[field] = data.get(field, '')
+            
+            try:
+                return render_template("review.html", data=data, filename=filename)
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"Template rendering error: {e}")
+                print(f"Data keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+                return jsonify({
+                    "error": "Failed to render review page",
+                    "message": str(e)
+                }), 500
         
         return jsonify({"error": "Invalid file type"}), 400
     except Exception as e:

@@ -202,9 +202,11 @@ def get_pdf_images(pdf_path):
     images = []
     doc = None
     try:
+        print(f"Opening PDF: {pdf_path}")
         doc = fitz.open(pdf_path)
         max_pages = 10
         page_count = min(len(doc), max_pages)
+        print(f"Processing {page_count} pages from PDF")
         
         for page_num in range(page_count):
             try:
@@ -215,13 +217,18 @@ def get_pdf_images(pdf_path):
                 images.append(b64_img)
                 pix = None
                 page = None
+                print(f"Processed page {page_num + 1}/{page_count}")
             except Exception as e:
                 print(f"Error processing page {page_num}: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
+        print(f"Successfully processed {len(images)} pages")
     except Exception as e:
         print(f"Error processing PDF {pdf_path}: {e}")
         import traceback
         traceback.print_exc()
+        raise
     finally:
         if doc:
             doc.close()
@@ -254,11 +261,19 @@ def process_pdf(pdf_path):
         return None
 
     print(f"Processing {pdf_path}...")
-    images = get_pdf_images(pdf_path)
+    try:
+        images = get_pdf_images(pdf_path)
+    except Exception as e:
+        print(f"Failed to extract images from PDF: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
     
     if not images:
         print(f"No content found for {pdf_path}")
         return None
+    
+    print(f"Extracted {len(images)} images, preparing API request...")
 
     preview_image_path = None
     try:
@@ -382,10 +397,26 @@ def process_pdf(pdf_path):
             content_text = result['candidates'][0]['content']['parts'][0]['text']
             content_text = content_text.replace("```json", "").replace("```", "").strip()
             
-            data = json.loads(content_text)
-            if preview_image_path:
-                data['preview_image'] = preview_image_path
-            return data
+            try:
+                data = json.loads(content_text)
+                if not isinstance(data, dict):
+                    print(f"Error: Parsed data is not a dictionary: {type(data)}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    return None
+                
+                if preview_image_path:
+                    data['preview_image'] = preview_image_path
+                print(f"Successfully parsed JSON data with keys: {list(data.keys())}")
+                return data
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error (attempt {attempt + 1}/{max_retries}): {e}")
+                print(f"Content text preview: {content_text[:200]}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                    continue
+                return None
 
         except requests.exceptions.Timeout:
             print(f"API request timeout (attempt {attempt + 1}/{max_retries})")
