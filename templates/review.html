@@ -1,6 +1,13 @@
 {% extends "layout.html" %}
 
 {% block content %}
+<style>
+    .role-input {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+</style>
 <div class="bg-white shadow sm:rounded-lg overflow-hidden">
     <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gray-50 border-b">
         <div>
@@ -135,6 +142,7 @@
                                 <textarea
                                     class="role-input w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm resize-y"
                                     rows="1"
+                                    style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;"
                                     oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">{{ member.role }}</textarea>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -205,7 +213,7 @@
                     <option value="Dance Captain">Dance Captain</option>
                 </select>
             </td>
-            <td class="px-6 py-4 min-w-[200px]"><textarea class="role-input w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm resize-y" rows="1" placeholder="Role" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea></td>
+            <td class="px-6 py-4 min-w-[200px]"><textarea class="role-input w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm resize-y" rows="1" placeholder="Role" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea></td>
             <td class="px-6 py-4 whitespace-nowrap"><textarea class="actor-input w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-medium text-gray-900" rows="1" placeholder="Name"></textarea></td>
             <td class="px-6 py-4 whitespace-nowrap text-center"><input type="checkbox" class="equity-input h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"></td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
@@ -247,7 +255,7 @@
                         <option value="Dance Captain" ${cat === 'Dance Captain' ? 'selected' : ''}>Dance Captain</option>
                     </select>
                 </td>
-                <td class="px-6 py-4 min-w-[200px]"><textarea class="role-input w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm resize-y" rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${role}</textarea></td>
+                <td class="px-6 py-4 min-w-[200px]"><textarea class="role-input w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm resize-y" rows="1" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${role}</textarea></td>
                 <td class="px-6 py-4 whitespace-nowrap"><textarea class="actor-input w-full border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-medium text-gray-900" rows="1">${parts[i]}</textarea></td>
                 <td class="px-6 py-4 whitespace-nowrap text-center"><input type="checkbox" class="equity-input h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" ${isEq ? 'checked' : ''}></td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
