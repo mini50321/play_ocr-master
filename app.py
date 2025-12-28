@@ -26,6 +26,27 @@ db.init_app(app)
 def init_db():
     with app.app_context():
         db.create_all()
+        
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            
+            if 'theater' in inspector.get_table_names():
+                theater_columns = [col['name'] for col in inspector.get_columns('theater')]
+                
+                with db.engine.connect() as conn:
+                    if 'address' not in theater_columns:
+                        conn.execute(text('ALTER TABLE theater ADD COLUMN address TEXT'))
+                        conn.commit()
+                    if 'description' not in theater_columns:
+                        conn.execute(text('ALTER TABLE theater ADD COLUMN description TEXT'))
+                        conn.commit()
+                    if 'image' not in theater_columns:
+                        conn.execute(text('ALTER TABLE theater ADD COLUMN image VARCHAR(500)'))
+                        conn.commit()
+        except Exception as e:
+            print(f"Migration check: {e}")
+        
         if not Theater.query.first():
             db.session.add(Theater(name="THE ARGYLE THEATRE",  latitude="40.7128", longitude="-74.0060", city="New York", state="NY"))
             db.session.add(Theater(name="The Gateway",  latitude="40.7589", longitude="-73.9851", city="New York", state="NY"))
