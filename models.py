@@ -16,6 +16,9 @@ class Theater(db.Model):
     longitude: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
     state: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    image: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
 class Show(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -127,6 +127,44 @@ def upload():
                 ('dance_captains', 'Dance Captain')
             ]
             
+            def split_dual_role(role_text):
+                role_mappings = {
+                    'directed': 'Director',
+                    'choreographed': 'Choreographer',
+                    'written': 'Writer',
+                    'produced': 'Producer',
+                    'designed': 'Designer',
+                    'lighting': 'Lighting Designer',
+                    'sound': 'Sound Designer',
+                    'costume': 'Costume Designer',
+                    'set': 'Set Designer',
+                    'scenic': 'Scenic Designer'
+                }
+                
+                if '&' in role_text.lower() or 'and' in role_text.lower():
+                    parts = []
+                    role_lower = role_text.lower()
+                    
+                    if 'directed' in role_lower and 'choreographed' in role_lower:
+                        parts.append('Director')
+                        parts.append('Choreographer')
+                    elif 'directed' in role_lower and 'written' in role_lower:
+                        parts.append('Director')
+                        parts.append('Writer')
+                    elif 'written' in role_lower and 'directed' in role_lower:
+                        parts.append('Writer')
+                        parts.append('Director')
+                    else:
+                        for key, mapped_role in role_mappings.items():
+                            if key in role_lower:
+                                parts.append(mapped_role)
+                    
+                    if not parts:
+                        parts = [role_text]
+                    
+                    return parts
+                return [role_text]
+            
             for cat_key, cat_name in categories_map:
                 items = data.get(cat_key, [])
                 if items:
@@ -145,10 +183,19 @@ def upload():
                                 'is_equity': is_eq
                             })
                         elif isinstance(item, dict):
-                            item['cat'] = cat_name
-                            if 'is_equity' not in item:
-                                item['is_equity'] = False
-                            all_credits.append(item)
+                            role = item.get('role', cat_name)
+                            actor = item.get('actor', '')
+                            is_equity = item.get('is_equity', False)
+                            
+                            split_roles = split_dual_role(role)
+                            
+                            for split_role in split_roles:
+                                all_credits.append({
+                                    'cat': cat_name,
+                                    'role': split_role,
+                                    'actor': actor,
+                                    'is_equity': is_equity
+                                })
                         
             ensemble_list = data.get('ensemble', [])
             for name in ensemble_list:

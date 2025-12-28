@@ -319,11 +319,12 @@ def process_pdf(pdf_path):
     
     IMPORTANT RULES:
     1. **Equity Members**: If a person's name has an asterisk (*) or symbol indicating Actors' Equity Association, set "is_equity": true. Remove the symbol from the name string.
-    2. **Ensemble Splitting**: If you see a block of names under "Ensemble" or "Chorus", split them into individual strings in the "ensemble" list. Do NOT group them in one string.
-    3. **Swings & Understudies**: Extract these into their own separate lists.
-    4. **Dance Captains**: Extract under "dance_captains" list.
-    5. If a field is not found, use empty list [] or null.
-    6. The output must be pure JSON without markdown formatting.
+    2. **Dual Roles**: If you see roles like "Directed & Choreographed by" or "Written & Directed by", split them into TWO separate entries with the same actor name. For example, "Directed & Choreographed by John Smith" should become two entries: {"role": "Director", "actor": "John Smith"} and {"role": "Choreographer", "actor": "John Smith"}.
+    3. **Ensemble Splitting**: If you see a block of names under "Ensemble" or "Chorus", split them into individual strings in the "ensemble" list. Do NOT group them in one string.
+    4. **Swings & Understudies**: Extract these into their own separate lists.
+    5. **Dance Captains**: Extract under "dance_captains" list.
+    6. If a field is not found, use empty list [] or null.
+    7. The output must be pure JSON without markdown formatting.
     """
 
     parts = [{"text": prompt_text}]

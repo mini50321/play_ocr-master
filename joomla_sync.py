@@ -15,11 +15,65 @@ def sync_theaters_from_joomla():
             )
             
             cursor = conn.cursor()
-            cursor.execute(f"SELECT id, name, latitude, longitude, city, county FROM {Config.JOOMLA_THEATER_TABLE} WHERE state = 1")
-            joomla_theaters = cursor.fetchall()
+            try:
+                cursor.execute(f"SHOW COLUMNS FROM {Config.JOOMLA_THEATER_TABLE}")
+                columns = [col[0] for col in cursor.fetchall()]
+                
+                desc_col = None
+                addr_col = None
+                img_col = None
+                
+                for col in columns:
+                    col_lower = col.lower()
+                    if 'description' in col_lower or 'desc' in col_lower:
+                        desc_col = col
+                    if 'address' in col_lower or 'addr' in col_lower:
+                        addr_col = col
+                    if 'image' in col_lower or 'logo' in col_lower or 'picture' in col_lower:
+                        img_col = col
+                
+                select_cols = ["id", "name", "latitude", "longitude", "city", "county"]
+                if desc_col:
+                    select_cols.append(desc_col)
+                if addr_col:
+                    select_cols.append(addr_col)
+                if img_col:
+                    select_cols.append(img_col)
+                
+                query = f"SELECT {', '.join(select_cols)} FROM {Config.JOOMLA_THEATER_TABLE} WHERE state = 1"
+                cursor.execute(query)
+                joomla_theaters = cursor.fetchall()
+            except Exception as e:
+                print(f"Error detecting columns, using basic query: {e}")
+                cursor.execute(f"SELECT id, name, latitude, longitude, city, county FROM {Config.JOOMLA_THEATER_TABLE} WHERE state = 1")
+                joomla_theaters = cursor.fetchall()
+                desc_col = None
+                addr_col = None
+                img_col = None
             
             synced_count = 0
-            for joomla_id, joomla_name, latitude, longitude, city, state in joomla_theaters:
+            for row in joomla_theaters:
+                joomla_id = row[0]
+                joomla_name = row[1]
+                latitude = row[2] if len(row) > 2 else None
+                longitude = row[3] if len(row) > 3 else None
+                city = row[4] if len(row) > 4 else None
+                state = row[5] if len(row) > 5 else None
+                
+                description = None
+                address = None
+                image = None
+                
+                idx = 6
+                if desc_col and len(row) > idx:
+                    description = row[idx]
+                    idx += 1
+                if addr_col and len(row) > idx:
+                    address = row[idx]
+                    idx += 1
+                if img_col and len(row) > idx:
+                    image = row[idx]
+                
                 existing = Theater.query.filter_by(joomla_id=joomla_id).first()
                 
                 if existing:
@@ -39,6 +93,15 @@ def sync_theaters_from_joomla():
                     if existing.state != state:
                         existing.state = state
                         updated = True
+                    if description is not None and existing.description != description:
+                        existing.description = description
+                        updated = True
+                    if address is not None and existing.address != address:
+                        existing.address = address
+                        updated = True
+                    if image is not None and existing.image != image:
+                        existing.image = image
+                        updated = True
                     if updated:
                         synced_count += 1
                 else:
@@ -52,6 +115,12 @@ def sync_theaters_from_joomla():
                         existing_by_name.longitude = longitude
                         existing_by_name.city = city
                         existing_by_name.state = state
+                        if description is not None:
+                            existing_by_name.description = description
+                        if address is not None:
+                            existing_by_name.address = address
+                        if image is not None:
+                            existing_by_name.image = image
                         synced_count += 1
                     else:
                         new_theater = Theater(
@@ -60,7 +129,10 @@ def sync_theaters_from_joomla():
                             latitude=latitude,
                             longitude=longitude,
                             city=city,
-                            state=state
+                            state=state,
+                            description=description,
+                            address=address,
+                            image=image
                         )
                         db.session.add(new_theater)
                         synced_count += 1
