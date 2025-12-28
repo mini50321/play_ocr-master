@@ -41,11 +41,18 @@
             {% for category, credits_list in prod_data.credits.items() %}
             <div class="mb-6">
                 <div class="flex items-center gap-2 mb-3">
-                    <h3 class="text-lg font-semibold text-gray-800">{{ category }}</h3>
+                    <button type="button" 
+                            onclick="toggleCategory('{{ prod_id }}-{{ category }}')"
+                            class="flex items-center gap-2 text-gray-700 hover:text-gray-900 focus:outline-none">
+                        <svg id="arrow-{{ prod_id }}-{{ category }}" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-gray-800">{{ category }}</h3>
+                    </button>
                     {% if category == 'Understudies' %}
                     <button type="button" 
                             onclick="toggleEditUnderstudies({{ prod_data.production.id }})"
-                            class="text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                            class="text-indigo-600 hover:text-indigo-800 focus:outline-none ml-auto"
                             id="edit-icon-{{ prod_data.production.id }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -53,6 +60,7 @@
                     </button>
                     {% endif %}
                 </div>
+                <div id="content-{{ prod_id }}-{{ category }}" class="hidden">
                 {% if category == 'Understudies' %}
                 <div id="understudies-display-{{ prod_data.production.id }}">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -107,6 +115,7 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -117,6 +126,19 @@
 
 {% block scripts %}
 <script>
+    function toggleCategory(categoryId) {
+        const contentDiv = document.getElementById(`content-${categoryId}`);
+        const arrow = document.getElementById(`arrow-${categoryId}`);
+        
+        if (contentDiv.classList.contains('hidden')) {
+            contentDiv.classList.remove('hidden');
+            arrow.classList.add('rotate-90');
+        } else {
+            contentDiv.classList.add('hidden');
+            arrow.classList.remove('rotate-90');
+        }
+    }
+
     function toggleEditUnderstudies(productionId) {
         const displayDiv = document.getElementById(`understudies-display-${productionId}`);
         const editDiv = document.getElementById(`understudies-edit-${productionId}`);
