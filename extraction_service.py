@@ -467,16 +467,18 @@ def process_pdf(pdf_path):
                     wait_time = min(300, wait_time)
                     logger.warning(f"Using API-suggested retry delay: {wait_time} seconds")
                 
+                if daily_limit:
+                    logger.error("Daily quota limit exhausted (20 requests/day for free tier). Quota resets daily. Cannot retry.")
+                    return None
+                
                 if attempt < max_retries - 1:
-                    if daily_limit:
-                        logger.error("Daily quota limit reached (20 requests/day for free tier). Waiting before retry...")
+                    if wait_time > 120:
+                        logger.warning(f"Retry delay ({wait_time}s) exceeds server timeout. Limiting to 120 seconds.")
+                        wait_time = 120
                     logger.info(f"Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
                     continue
                 else:
-                    if daily_limit:
-                        logger.error("Daily quota limit exhausted (20 requests/day for free tier). Quota resets daily.")
-                        return None
                     logger.error(f"Rate limit hit on final attempt. All retries exhausted.")
                     return None
                 
