@@ -335,8 +335,8 @@ def upload():
                     }), 500
                 else:
                     return jsonify({
-                        "error": "Extraction failed: No data returned",
-                        "message": "The AI service did not return any data. This may be due to API rate limits (too many requests), region restrictions, timeout, or API errors. Please wait a few minutes and try again."
+                        "error": "Extraction failed: API quota exceeded",
+                        "message": "The AI service quota has been exceeded. The free tier allows 20 requests per day. Please wait until the quota resets (daily) or upgrade your API plan. You can check your usage at https://ai.dev/usage?tab=rate-limit"
                     }), 500
 
             all_credits = []
