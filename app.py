@@ -243,6 +243,9 @@ def upload():
             file.save(path)
             logger.info(f"File saved successfully")
             
+            import gc
+            gc.collect()
+            
             try:
                 import psutil
                 process = psutil.Process()

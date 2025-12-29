@@ -6,6 +6,7 @@ import fitz
 import time
 import logging
 import traceback
+import gc
 from dotenv import load_dotenv
 from config import Config
 
@@ -208,23 +209,40 @@ def get_pdf_images(pdf_path):
     try:
         logger.info(f"Opening PDF: {pdf_path}")
         doc = fitz.open(pdf_path)
-        max_pages = 10
+        
+        file_size = os.path.getsize(pdf_path) if os.path.exists(pdf_path) else 0
+        file_size_mb = file_size / (1024 * 1024)
+        logger.info(f"PDF file size: {file_size_mb:.2f} MB")
+        
+        max_pages = 6 if file_size_mb > 3 else 8
         page_count = min(len(doc), max_pages)
-        logger.info(f"Processing {page_count} pages from PDF (max {max_pages} pages)")
+        logger.info(f"Processing {page_count} pages from PDF (max {max_pages} pages, file size: {file_size_mb:.2f} MB)")
         
         for page_num in range(page_count):
             try:
                 page = doc.load_page(page_num)
-                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                img_bytes = pix.tobytes("jpeg")
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))
+                img_bytes = pix.tobytes("jpeg", jpg_quality=75)
                 b64_img = base64.b64encode(img_bytes).decode('utf-8')
                 images.append(b64_img)
+                
+                del img_bytes
+                del b64_img
                 pix = None
+                del pix
                 page = None
+                del page
+                
+                import gc
+                gc.collect()
+                
                 logger.debug(f"Processed page {page_num + 1}/{page_count}")
             except MemoryError as e:
                 logger.error(f"MEMORY ERROR processing page {page_num}: {e}")
                 logger.error(traceback.format_exc())
+                if page_num > 0:
+                    logger.warning(f"Returning {len(images)} pages processed before memory error")
+                    break
                 raise
             except Exception as e:
                 logger.warning(f"Error processing page {page_num}: {e}")
@@ -242,6 +260,7 @@ def get_pdf_images(pdf_path):
         if doc:
             doc.close()
             doc = None
+        gc.collect()
     return images
 
 def process_pdf(pdf_path):
@@ -286,6 +305,9 @@ def process_pdf(pdf_path):
         return None
     
     logger.info(f"Extracted {len(images)} images, preparing API request...")
+    
+    total_image_size = sum(len(img.encode('utf-8')) for img in images)
+    logger.info(f"Total base64 image data size: {total_image_size / (1024*1024):.2f} MB")
 
     preview_image_path = None
     try:
@@ -298,12 +320,15 @@ def process_pdf(pdf_path):
         preview_full_path = os.path.join(preview_dir, preview_filename)
         
         if images:
+            preview_data = base64.b64decode(images[0])
             with open(preview_full_path, "wb") as f:
-                f.write(base64.b64decode(images[0]))
+                f.write(preview_data)
+            del preview_data
             preview_image_path = f"previews/{preview_filename}"
+            gc.collect()
             
     except Exception as e:
-        print(f"Error saving preview image: {e}")
+        logger.error(f"Error saving preview image: {e}")
 
     prompt_text = """
     You are an expert at extracting structured data from theatre playbills.
@@ -362,6 +387,10 @@ def process_pdf(pdf_path):
                 "data": img_b64
             }
         })
+    
+    del images
+    gc.collect()
+    logger.info("Cleared images from memory, preparing API payload")
 
     payload = {
         "contents": [{
@@ -371,6 +400,9 @@ def process_pdf(pdf_path):
             "response_mime_type": "application/json"
         }
     }
+    
+    payload_size = len(json.dumps(payload))
+    logger.info(f"API payload size: {payload_size / (1024*1024):.2f} MB")
 
     max_retries = 3
     api_start_time = time.time()
