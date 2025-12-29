@@ -373,15 +373,20 @@ def process_pdf(pdf_path):
     }
 
     max_retries = 3
+    api_start_time = time.time()
     for attempt in range(max_retries):
         response = None
         try:
+            logger.info(f"Making API request (attempt {attempt + 1}/{max_retries})...")
+            request_start = time.time()
             response = requests.post(
                 API_URL, 
                 json=payload, 
                 headers={"Content-Type": "application/json"},
-                timeout=(30, 120)
+                timeout=(30, 90)
             )
+            request_duration = time.time() - request_start
+            logger.info(f"API request completed in {request_duration:.2f} seconds")
             
             if response.status_code == 429:
                 wait_time = (attempt + 1) * 5
@@ -431,11 +436,16 @@ def process_pdf(pdf_path):
                 return None
 
         except requests.exceptions.Timeout as e:
-            logger.error(f"API REQUEST TIMEOUT (attempt {attempt + 1}/{max_retries}): {e}")
+            elapsed = time.time() - api_start_time
+            logger.error(f"API REQUEST TIMEOUT after {elapsed:.2f} seconds (attempt {attempt + 1}/{max_retries}): {e}")
             logger.error(traceback.format_exc())
             if attempt < max_retries - 1:
-                time.sleep(2)
+                wait_time = min(5, 180 - elapsed - 10)
+                if wait_time > 0:
+                    logger.info(f"Waiting {wait_time:.1f} seconds before retry...")
+                    time.sleep(wait_time)
                 continue
+            logger.error("API timeout: All retry attempts exhausted")
             return None
         except requests.exceptions.RequestException as e:
             logger.error(f"API REQUEST ERROR (attempt {attempt + 1}/{max_retries}): {e}")

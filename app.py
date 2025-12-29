@@ -256,11 +256,15 @@ def upload():
             try:
                 logger.info(f"Starting PDF processing for: {filename}")
                 processing_start = datetime.now()
+                upload_elapsed = (processing_start - upload_start_time).total_seconds()
+                logger.info(f"Time elapsed before processing: {upload_elapsed:.2f} seconds")
                 
                 data = process_pdf(path)
                 
                 processing_time = (datetime.now() - processing_start).total_seconds()
+                total_elapsed = (datetime.now() - upload_start_time).total_seconds()
                 logger.info(f"PDF processing completed in {processing_time:.2f} seconds")
+                logger.info(f"Total request time so far: {total_elapsed:.2f} seconds")
                 
                 if data:
                     logger.info(f"Data extracted successfully. Keys: {list(data.keys())}")
