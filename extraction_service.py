@@ -443,17 +443,19 @@ def process_pdf(pdf_path):
                 wait_time = None
                 quota_exceeded = False
                 daily_limit = False
+                api_error_message = ""
                 
                 try:
                     error_data = response.json()
-                    logger.warning(f"Rate limit error details: {error_data}")
+                    logger.warning(f"Rate limit error details (FULL API RESPONSE): {json.dumps(error_data, indent=2)}")
                     
                     error_obj = error_data.get('error', {})
-                    error_message = error_obj.get('message', '')
+                    api_error_message = error_obj.get('message', '')
+                    logger.info(f"API error message: {api_error_message}")
                     
-                    if 'quota' in error_message.lower() or 'Quota exceeded' in error_message:
+                    if 'quota' in api_error_message.lower() or 'Quota exceeded' in api_error_message:
                         quota_exceeded = True
-                        if 'limit: 20' in error_message or 'FreeTier' in str(error_data):
+                        if 'limit: 20' in api_error_message or 'FreeTier' in str(error_data):
                             daily_limit = True
                     
                     details = error_obj.get('details', [])
@@ -467,9 +469,9 @@ def process_pdf(pdf_path):
                                 except (ValueError, AttributeError):
                                     pass
                     
-                    if not wait_time and 'retry in' in error_message.lower():
+                    if not wait_time and 'retry in' in api_error_message.lower():
                         import re
-                        match = re.search(r'retry in ([\d.]+)s?', error_message, re.IGNORECASE)
+                        match = re.search(r'retry in ([\d.]+)s?', api_error_message, re.IGNORECASE)
                         if match:
                             try:
                                 wait_time = int(float(match.group(1)) + 1)
@@ -478,6 +480,7 @@ def process_pdf(pdf_path):
                                 pass
                 except Exception as e:
                     logger.warning(f"Could not parse rate limit error: {e}")
+                    logger.warning(f"Raw response text: {response.text[:500]}")
                 
                 if not wait_time:
                     wait_time = min(120, 10 * (2 ** attempt))
@@ -487,8 +490,8 @@ def process_pdf(pdf_path):
                     logger.warning(f"Using API-suggested retry delay: {wait_time} seconds")
                 
                 if daily_limit:
-                    error_msg = "Daily quota limit exhausted (20 requests/day for free tier). Quota resets daily."
-                    logger.error(error_msg)
+                    error_msg = api_error_message if api_error_message else "Daily quota limit exhausted. Quota resets daily."
+                    logger.error(f"Daily quota limit detected. API message: {error_msg}")
                     raise GeminiQuotaExceededError(error_msg, is_daily_limit=True)
                 
                 if attempt < max_retries - 1:
@@ -499,8 +502,8 @@ def process_pdf(pdf_path):
                     time.sleep(wait_time)
                     continue
                 else:
-                    error_msg = "Rate limit hit. All retry attempts exhausted."
-                    logger.error(error_msg)
+                    error_msg = api_error_message if api_error_message else "Rate limit hit. All retry attempts exhausted."
+                    logger.error(f"Rate limit exhausted. API message: {error_msg}")
                     raise GeminiQuotaExceededError(error_msg, is_daily_limit=False, retry_after=wait_time)
                 
             response.raise_for_status()

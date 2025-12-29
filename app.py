@@ -277,10 +277,17 @@ def upload():
             except GeminiQuotaExceededError as e:
                 logger.error(f"GEMINI QUOTA EXCEEDED for {filename}: {e.message}")
                 logger.error(traceback.format_exc())
+                
+                api_message = e.message
+                
                 if e.is_daily_limit:
+                    user_message = "Daily AI request limit reached. Please try again tomorrow."
+                    if api_message and api_message != "Daily quota limit exhausted. Quota resets daily.":
+                        user_message = f"{api_message} Please try again tomorrow."
                     return jsonify({
                         "error": "Daily AI request limit reached",
-                        "message": "Daily AI request limit reached. Please try again tomorrow."
+                        "message": user_message,
+                        "api_message": api_message
                     }), 429
                 else:
                     if e.retry_after and e.retry_after < 60:
@@ -290,9 +297,12 @@ def upload():
                         retry_msg = f"Please try again in {int(e.retry_after)} seconds."
                     else:
                         retry_msg = "Please try again in a few moments."
+                    
+                    user_message = api_message if api_message else "AI request rate limit reached."
                     return jsonify({
                         "error": "AI request rate limit reached",
-                        "message": f"AI request rate limit reached. {retry_msg}"
+                        "message": f"{user_message} {retry_msg}",
+                        "api_message": api_message
                     }), 429
             except GeminiAPIError as e:
                 logger.error(f"GEMINI API ERROR for {filename}: {e.message} (status: {e.status_code}, code: {e.error_code})")
