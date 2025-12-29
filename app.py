@@ -245,6 +245,7 @@ def upload():
             
             import gc
             gc.collect()
+            gc.collect()
             
             try:
                 import psutil

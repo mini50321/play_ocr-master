@@ -256,7 +256,7 @@ def get_pdf_images(pdf_path):
                 page = None
                 del page
                 
-                import gc
+                gc.collect()
                 gc.collect()
                 
                 logger.debug(f"Processed page {page_num + 1}/{page_count}")
@@ -409,6 +409,7 @@ def process_pdf(pdf_path):
     
     del images
     gc.collect()
+    gc.collect()
     logger.info("Cleared images from memory, preparing API payload")
 
     payload = {
@@ -423,246 +424,225 @@ def process_pdf(pdf_path):
     payload_size = len(json.dumps(payload))
     logger.info(f"API payload size: {payload_size / (1024*1024):.2f} MB")
 
-    max_retries = 5
     api_start_time = time.time()
-    for attempt in range(max_retries):
-        response = None
-        try:
-            logger.info(f"Making API request (attempt {attempt + 1}/{max_retries})...")
-            request_start = time.time()
-            response = requests.post(
-                API_URL, 
-                json=payload, 
-                headers={"Content-Type": "application/json"},
-                timeout=(30, 90)
-            )
-            request_duration = time.time() - request_start
-            logger.info(f"API request completed in {request_duration:.2f} seconds, status: {response.status_code}")
-            
-            if response.status_code == 429:
-                wait_time = None
-                quota_exceeded = False
-                daily_limit = False
-                api_error_message = ""
-                
-                try:
-                    error_data = response.json()
-                    logger.warning(f"Rate limit error details (FULL API RESPONSE): {json.dumps(error_data, indent=2)}")
-                    
-                    error_obj = error_data.get('error', {})
-                    api_error_message = error_obj.get('message', '')
-                    logger.info(f"API error message: {api_error_message}")
-                    
-                    if 'quota' in api_error_message.lower() or 'Quota exceeded' in api_error_message:
-                        quota_exceeded = True
-                        if 'limit: 20' in api_error_message or 'FreeTier' in str(error_data):
-                            daily_limit = True
-                    
-                    details = error_obj.get('details', [])
-                    for detail in details:
-                        if detail.get('@type') == 'type.googleapis.com/google.rpc.RetryInfo':
-                            retry_delay = detail.get('retryDelay', '')
-                            if retry_delay:
-                                try:
-                                    wait_time = int(retry_delay.replace('s', '').strip())
-                                    logger.info(f"Found RetryInfo delay: {wait_time} seconds")
-                                except (ValueError, AttributeError):
-                                    pass
-                    
-                    if not wait_time and 'retry in' in api_error_message.lower():
-                        import re
-                        match = re.search(r'retry in ([\d.]+)s?', api_error_message, re.IGNORECASE)
-                        if match:
-                            try:
-                                wait_time = int(float(match.group(1)) + 1)
-                                logger.info(f"Extracted retry delay from message: {wait_time} seconds")
-                            except (ValueError, AttributeError):
-                                pass
-                except Exception as e:
-                    logger.warning(f"Could not parse rate limit error: {e}")
-                    logger.warning(f"Raw response text: {response.text[:500]}")
-                
-                if not wait_time:
-                    wait_time = min(120, 10 * (2 ** attempt))
-                    logger.warning(f"Using exponential backoff: {wait_time} seconds")
-                else:
-                    wait_time = min(300, wait_time)
-                    logger.warning(f"Using API-suggested retry delay: {wait_time} seconds")
-                
-                if daily_limit:
-                    if not api_error_message:
-                        api_error_message = "Daily quota limit exceeded"
-                    logger.error(f"Daily quota limit detected. API message: {api_error_message}")
-                    raise GeminiQuotaExceededError(api_error_message, is_daily_limit=True)
-                
-                if attempt < max_retries - 1:
-                    if wait_time > 120:
-                        logger.warning(f"Retry delay ({wait_time}s) exceeds server timeout. Limiting to 120 seconds.")
-                        wait_time = 120
-                    logger.info(f"Waiting {wait_time} seconds before retry...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    if not api_error_message:
-                        api_error_message = "Rate limit exceeded"
-                    logger.error(f"Rate limit exhausted. API message: {api_error_message}")
-                    raise GeminiQuotaExceededError(api_error_message, is_daily_limit=False, retry_after=wait_time)
-                
-            if response.status_code != 200:
-                try:
-                    error_data = response.json()
-                    logger.error(f"API returned error status {response.status_code}. Full response: {json.dumps(error_data, indent=2)}")
-                    
-                    error_obj = error_data.get('error', {})
-                    api_error_message = error_obj.get('message', f'API returned status {response.status_code}')
-                    error_code = error_obj.get('code', response.status_code)
-                    error_status = error_obj.get('status', 'UNKNOWN')
-                    
-                    if response.status_code == 400:
-                        raise GeminiAPIError(api_error_message, status_code=400, error_code=error_status)
-                    elif response.status_code == 401:
-                        raise GeminiAPIError("API authentication failed. Please check your API key.", status_code=401, error_code="UNAUTHENTICATED")
-                    elif response.status_code == 403:
-                        raise GeminiAPIError("API access forbidden. Please check your API key permissions.", status_code=403, error_code="PERMISSION_DENIED")
-                    elif response.status_code == 429:
-                        raise GeminiAPIError(api_error_message, status_code=429, error_code=error_status)
-                    elif response.status_code >= 500:
-                        raise GeminiAPIError(f"API server error: {api_error_message}", status_code=response.status_code, error_code=error_status)
-                    else:
-                        raise GeminiAPIError(api_error_message, status_code=response.status_code, error_code=error_status)
-                except json.JSONDecodeError:
-                    logger.error(f"API returned non-JSON error response: {response.text[:500]}")
-                    raise GeminiAPIError(f"API returned error status {response.status_code}: {response.text[:200]}", status_code=response.status_code)
-                except (GeminiQuotaExceededError, GeminiAPIError):
-                    raise
-                except Exception as e:
-                    logger.error(f"Error parsing API error response: {e}")
-                    raise GeminiAPIError(f"API returned error status {response.status_code}", status_code=response.status_code)
-            
-            result = response.json()
-            
-            if not result.get('candidates') or len(result['candidates']) == 0:
-                logger.warning(f"API returned no candidates (attempt {attempt + 1}/{max_retries})")
-                if attempt < max_retries - 1:
-                    time.sleep(2)
-                    continue
-                raise GeminiAPIError("API returned no candidates in response", status_code=502)
-            
-            if 'content' not in result['candidates'][0] or 'parts' not in result['candidates'][0]['content']:
-                logger.warning(f"Unexpected API response structure (attempt {attempt + 1}/{max_retries})")
-                if attempt < max_retries - 1:
-                    time.sleep(2)
-                    continue
-                raise GeminiAPIError("Unexpected API response structure", status_code=502)
-            
-            content_text = result['candidates'][0]['content']['parts'][0]['text']
-            content_text = content_text.replace("```json", "").replace("```", "").strip()
+    response = None
+    try:
+        logger.info(f"Making API request...")
+        request_start = time.time()
+        response = requests.post(
+            API_URL, 
+            json=payload, 
+            headers={"Content-Type": "application/json"},
+            timeout=(30, 90)
+        )
+        request_duration = time.time() - request_start
+        logger.info(f"API request completed in {request_duration:.2f} seconds, status: {response.status_code}")
+        
+        if response.status_code == 429:
+            wait_time = None
+            quota_exceeded = False
+            daily_limit = False
+            api_error_message = ""
             
             try:
-                data = json.loads(content_text)
-                if not isinstance(data, dict):
-                    logger.error(f"Parsed data is not a dictionary: {type(data)} (attempt {attempt + 1}/{max_retries})")
-                    if attempt < max_retries - 1:
-                        time.sleep(2)
-                        continue
-                    raise GeminiAPIError("API returned invalid data format", status_code=502)
+                error_data = response.json()
+                logger.warning(f"Rate limit error details (FULL API RESPONSE): {json.dumps(error_data, indent=2)}")
                 
-                if preview_image_path:
-                    data['preview_image'] = preview_image_path
-                logger.info(f"Successfully parsed JSON data with keys: {list(data.keys())}")
-                return data
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON decode error (attempt {attempt + 1}/{max_retries}): {e}")
-                logger.debug(f"Content text preview: {content_text[:200]}")
-                if attempt < max_retries - 1:
-                    time.sleep(2)
-                    continue
-                raise GeminiAPIError(f"Failed to parse API response as JSON: {str(e)}", status_code=502)
-
-        except requests.exceptions.Timeout as e:
-            elapsed = time.time() - api_start_time
-            logger.error(f"API REQUEST TIMEOUT after {elapsed:.2f} seconds (attempt {attempt + 1}/{max_retries}): {e}")
-            logger.error(traceback.format_exc())
-            if attempt < max_retries - 1:
-                wait_time = min(5, 180 - elapsed - 10)
-                if wait_time > 0:
-                    logger.info(f"Waiting {wait_time:.1f} seconds before retry...")
-                    time.sleep(wait_time)
-                continue
-            error_msg = "API request timed out after multiple retry attempts"
-            logger.error(error_msg)
-            raise GeminiAPIError(error_msg, status_code=408)
-        except requests.exceptions.RequestException as e:
-            logger.error(f"API REQUEST ERROR (attempt {attempt + 1}/{max_retries}): {e}")
-            if response:
-                logger.error(f"Status Code: {response.status_code}")
-                try:
-                    error_data = response.json()
-                    logger.error(f"API Error Response: {json.dumps(error_data, indent=2)}")
-                    
-                    error_obj = error_data.get('error', {})
-                    api_error_message = error_obj.get('message', f'API request failed: {str(e)}')
-                    error_code = error_obj.get('code', response.status_code)
-                    error_status = error_obj.get('status', 'UNKNOWN')
-                    
-                    if response.status_code == 400:
-                        if 'location' in api_error_message.lower() or 'region' in api_error_message.lower():
-                            raise GeminiAPIError(api_error_message, status_code=400, error_code="REGION_RESTRICTED")
-                        else:
-                            raise GeminiAPIError(api_error_message, status_code=400, error_code=error_status)
-                    elif response.status_code == 401:
-                        raise GeminiAPIError("API authentication failed. Please check your API key.", status_code=401, error_code="UNAUTHENTICATED")
-                    elif response.status_code == 403:
-                        raise GeminiAPIError("API access forbidden. Please check your API key permissions.", status_code=403, error_code="PERMISSION_DENIED")
-                    elif response.status_code == 429:
-                        raise GeminiQuotaExceededError(api_error_message, is_daily_limit=False)
-                    elif response.status_code >= 500:
-                        raise GeminiAPIError(f"API server error: {api_error_message}", status_code=response.status_code, error_code=error_status)
-                    else:
-                        raise GeminiAPIError(api_error_message, status_code=response.status_code, error_code=error_status)
-                except json.JSONDecodeError:
-                    logger.error(f"API returned non-JSON error response: {response.text[:500]}")
-                    if response.status_code == 429:
-                        raise GeminiQuotaExceededError(f"Rate limit exceeded (status {response.status_code})", is_daily_limit=False)
-                    else:
-                        raise GeminiAPIError(f"API returned error status {response.status_code}: {response.text[:200]}", status_code=response.status_code)
-                except (GeminiQuotaExceededError, GeminiAPIError):
-                    raise
-            elif attempt < max_retries - 1:
-                time.sleep(2)
-                continue
+                error_obj = error_data.get('error', {})
+                api_error_message = error_obj.get('message', '')
+                logger.info(f"API error message: {api_error_message}")
+                
+                if 'quota' in api_error_message.lower() or 'Quota exceeded' in api_error_message:
+                    quota_exceeded = True
+                    if 'limit: 20' in api_error_message or 'FreeTier' in str(error_data):
+                        daily_limit = True
+                
+                details = error_obj.get('details', [])
+                for detail in details:
+                    if detail.get('@type') == 'type.googleapis.com/google.rpc.RetryInfo':
+                        retry_delay = detail.get('retryDelay', '')
+                        if retry_delay:
+                            try:
+                                wait_time = int(retry_delay.replace('s', '').strip())
+                                logger.info(f"Found RetryInfo delay: {wait_time} seconds")
+                            except (ValueError, AttributeError):
+                                pass
+                
+                if not wait_time and 'retry in' in api_error_message.lower():
+                    import re
+                    match = re.search(r'retry in ([\d.]+)s?', api_error_message, re.IGNORECASE)
+                    if match:
+                        try:
+                            wait_time = int(float(match.group(1)) + 1)
+                            logger.info(f"Extracted retry delay from message: {wait_time} seconds")
+                        except (ValueError, AttributeError):
+                            pass
+            except Exception as e:
+                logger.warning(f"Could not parse rate limit error: {e}")
+                logger.warning(f"Raw response text: {response.text[:500]}")
+            
+            if not wait_time:
+                wait_time = 10
+                logger.warning(f"Using default retry delay: {wait_time} seconds")
             else:
-                error_msg = f"API request failed after multiple attempts: {str(e)}"
-                logger.error(error_msg)
-                logger.error(traceback.format_exc())
-                raise GeminiAPIError(error_msg, status_code=502)
-        except (KeyError, IndexError) as e:
-            logger.error(f"Error parsing API response structure (attempt {attempt + 1}/{max_retries}): {e}")
+                wait_time = min(300, wait_time)
+                logger.warning(f"Using API-suggested retry delay: {wait_time} seconds")
+            
+            if daily_limit:
+                if not api_error_message:
+                    api_error_message = "Daily quota limit exceeded"
+                logger.error(f"Daily quota limit detected. API message: {api_error_message}")
+                raise GeminiQuotaExceededError(api_error_message, is_daily_limit=True)
+            else:
+                if not api_error_message:
+                    api_error_message = "Rate limit exceeded"
+                logger.error(f"Rate limit hit. API message: {api_error_message}")
+                raise GeminiQuotaExceededError(api_error_message, is_daily_limit=False, retry_after=wait_time)
+            
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                logger.error(f"API returned error status {response.status_code}. Full response: {json.dumps(error_data, indent=2)}")
+                
+                error_obj = error_data.get('error', {})
+                api_error_message = error_obj.get('message', f'API returned status {response.status_code}')
+                error_code = error_obj.get('code', response.status_code)
+                error_status = error_obj.get('status', 'UNKNOWN')
+                
+                if response.status_code == 400:
+                    raise GeminiAPIError(api_error_message, status_code=400, error_code=error_status)
+                elif response.status_code == 401:
+                    raise GeminiAPIError("API authentication failed. Please check your API key.", status_code=401, error_code="UNAUTHENTICATED")
+                elif response.status_code == 403:
+                    raise GeminiAPIError("API access forbidden. Please check your API key permissions.", status_code=403, error_code="PERMISSION_DENIED")
+                elif response.status_code == 429:
+                    raise GeminiAPIError(api_error_message, status_code=429, error_code=error_status)
+                elif response.status_code >= 500:
+                    raise GeminiAPIError(f"API server error: {api_error_message}", status_code=response.status_code, error_code=error_status)
+                else:
+                    raise GeminiAPIError(api_error_message, status_code=response.status_code, error_code=error_status)
+            except json.JSONDecodeError:
+                logger.error(f"API returned non-JSON error response: {response.text[:500]}")
+                raise GeminiAPIError(f"API returned error status {response.status_code}: {response.text[:200]}", status_code=response.status_code)
+            except (GeminiQuotaExceededError, GeminiAPIError):
+                raise
+            except Exception as e:
+                logger.error(f"Error parsing API error response: {e}")
+                raise GeminiAPIError(f"API returned error status {response.status_code}", status_code=response.status_code)
+        
+        result = response.json()
+        
+        if not result.get('candidates') or len(result['candidates']) == 0:
+            logger.error("API returned no candidates in response")
+            raise GeminiAPIError("API returned no candidates in response", status_code=502)
+        
+        if 'content' not in result['candidates'][0] or 'parts' not in result['candidates'][0]['content']:
+            logger.error("Unexpected API response structure")
+            raise GeminiAPIError("Unexpected API response structure", status_code=502)
+        
+        content_text = result['candidates'][0]['content']['parts'][0]['text']
+        content_text = content_text.replace("```json", "").replace("```", "").strip()
+        
+        try:
+            data = json.loads(content_text)
+            if not isinstance(data, dict):
+                logger.error(f"Parsed data is not a dictionary: {type(data)}")
+                raise GeminiAPIError("API returned invalid data format", status_code=502)
+            
+            if preview_image_path:
+                data['preview_image'] = preview_image_path
+            
+            del content_text
+            del result
+            gc.collect()
+            gc.collect()
+            
+            logger.info(f"Successfully parsed JSON data with keys: {list(data.keys())}")
+            return data
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            logger.debug(f"Content text preview: {content_text[:200]}")
+            raise GeminiAPIError(f"Failed to parse API response as JSON: {str(e)}", status_code=502)
+
+    except requests.exceptions.Timeout as e:
+        elapsed = time.time() - api_start_time
+        logger.error(f"API REQUEST TIMEOUT after {elapsed:.2f} seconds: {e}")
+        logger.error(traceback.format_exc())
+        gc.collect()
+        gc.collect()
+        error_msg = "API request timed out"
+        logger.error(error_msg)
+        raise GeminiAPIError(error_msg, status_code=408)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API REQUEST ERROR: {e}")
+        if response:
+            logger.error(f"Status Code: {response.status_code}")
+            try:
+                error_data = response.json()
+                logger.error(f"API Error Response: {json.dumps(error_data, indent=2)}")
+                
+                error_obj = error_data.get('error', {})
+                api_error_message = error_obj.get('message', f'API request failed: {str(e)}')
+                error_code = error_obj.get('code', response.status_code)
+                error_status = error_obj.get('status', 'UNKNOWN')
+                
+                if response.status_code == 400:
+                    if 'location' in api_error_message.lower() or 'region' in api_error_message.lower():
+                        raise GeminiAPIError(api_error_message, status_code=400, error_code="REGION_RESTRICTED")
+                    else:
+                        raise GeminiAPIError(api_error_message, status_code=400, error_code=error_status)
+                elif response.status_code == 401:
+                    raise GeminiAPIError("API authentication failed. Please check your API key.", status_code=401, error_code="UNAUTHENTICATED")
+                elif response.status_code == 403:
+                    raise GeminiAPIError("API access forbidden. Please check your API key permissions.", status_code=403, error_code="PERMISSION_DENIED")
+                elif response.status_code == 429:
+                    raise GeminiQuotaExceededError(api_error_message, is_daily_limit=False)
+                elif response.status_code >= 500:
+                    raise GeminiAPIError(f"API server error: {api_error_message}", status_code=response.status_code, error_code=error_status)
+                else:
+                    raise GeminiAPIError(api_error_message, status_code=response.status_code, error_code=error_status)
+            except json.JSONDecodeError:
+                logger.error(f"API returned non-JSON error response: {response.text[:500]}")
+                if response.status_code == 429:
+                    raise GeminiQuotaExceededError(f"Rate limit exceeded (status {response.status_code})", is_daily_limit=False)
+                else:
+                    raise GeminiAPIError(f"API returned error status {response.status_code}: {response.text[:200]}", status_code=response.status_code)
+            except (GeminiQuotaExceededError, GeminiAPIError):
+                raise
+        else:
+            error_msg = f"API request failed: {str(e)}"
+            logger.error(error_msg)
             logger.error(traceback.format_exc())
-            if response:
-                try:
-                    logger.debug(f"Response text: {response.text[:500]}")
-                except:
-                    pass
-            if attempt < max_retries - 1:
-                time.sleep(2)
-                continue
-            raise GeminiAPIError(f"Error parsing API response structure: {str(e)}", status_code=502)
-        except MemoryError as e:
-            logger.error(f"MEMORY ERROR during API processing (attempt {attempt + 1}/{max_retries}): {e}")
-            logger.error(traceback.format_exc())
-            raise
-        except (GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError):
-            raise
-        except Exception as e:
-            error_type = type(e).__name__
-            logger.error(f"UNEXPECTED ERROR (attempt {attempt + 1}/{max_retries}): {error_type} - {e}")
-            logger.error(traceback.format_exc())
-            if attempt < max_retries - 1:
-                time.sleep(2)
-                continue
-            raise GeminiAPIError(f"Unexpected error during API processing: {str(e)}", status_code=500)
+            raise GeminiAPIError(error_msg, status_code=502)
+    except (KeyError, IndexError) as e:
+        logger.error(f"Error parsing API response structure: {e}")
+        logger.error(traceback.format_exc())
+        if response:
+            try:
+                logger.debug(f"Response text: {response.text[:500]}")
+            except:
+                pass
+        gc.collect()
+        gc.collect()
+        raise GeminiAPIError(f"Error parsing API response structure: {str(e)}", status_code=502)
+    except MemoryError as e:
+        logger.error(f"MEMORY ERROR during API processing: {e}")
+        logger.error(traceback.format_exc())
+        gc.collect()
+        gc.collect()
+        raise
+    except (GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError):
+        raise
+    except Exception as e:
+        error_type = type(e).__name__
+        logger.error(f"UNEXPECTED ERROR: {error_type} - {e}")
+        logger.error(traceback.format_exc())
+        gc.collect()
+        gc.collect()
+        raise GeminiAPIError(f"Unexpected error during API processing: {str(e)}", status_code=500)
     
-    error_msg = "Failed to process PDF after multiple API attempts"
+    error_msg = "Failed to process PDF - API request failed"
     logger.error(error_msg)
+    gc.collect()
+    gc.collect()
     raise GeminiAPIError(error_msg, status_code=500)
