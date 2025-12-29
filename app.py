@@ -281,9 +281,9 @@ def upload():
                 api_message = e.message
                 
                 if e.is_daily_limit:
-                    user_message = "Daily AI request limit reached. Please try again tomorrow."
-                    if api_message and api_message != "Daily quota limit exhausted. Quota resets daily.":
-                        user_message = f"{api_message} Please try again tomorrow."
+                    user_message = api_message if api_message else "Daily AI request limit reached."
+                    if "tomorrow" not in user_message.lower() and "reset" not in user_message.lower():
+                        user_message = f"{user_message} Please try again tomorrow."
                     return jsonify({
                         "error": "Daily AI request limit reached",
                         "message": user_message,
@@ -292,16 +292,16 @@ def upload():
                 else:
                     if e.retry_after and e.retry_after < 60:
                         retry_minutes = max(1, int(e.retry_after / 60))
-                        retry_msg = f"Please try again in {retry_minutes} minute{'s' if retry_minutes > 1 else ''}."
+                        retry_msg = f" Please try again in {retry_minutes} minute{'s' if retry_minutes > 1 else ''}."
                     elif e.retry_after:
-                        retry_msg = f"Please try again in {int(e.retry_after)} seconds."
+                        retry_msg = f" Please try again in {int(e.retry_after)} seconds."
                     else:
-                        retry_msg = "Please try again in a few moments."
+                        retry_msg = " Please try again in a few moments."
                     
                     user_message = api_message if api_message else "AI request rate limit reached."
                     return jsonify({
                         "error": "AI request rate limit reached",
-                        "message": f"{user_message} {retry_msg}",
+                        "message": f"{user_message}{retry_msg}",
                         "api_message": api_message
                     }), 429
             except GeminiAPIError as e:

@@ -28,6 +28,6 @@ class Config:
     
     TEST_MODE = os.getenv('TEST_MODE', 'false').lower() == 'true'
     
-    GEMINI_API_ENABLED = os.getenv('GEMINI_API_ENABLED', 'true').lower() == 'true'
+    GEMINI_API_ENABLED = os.getenv('GEMINI_API_ENABLED', 'false').lower() == 'true'
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', None)
     GEMINI_CLIENT_API_KEY = os.getenv('GEMINI_CLIENT_API_KEY', None)

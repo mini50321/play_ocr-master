@@ -490,9 +490,10 @@ def process_pdf(pdf_path):
                     logger.warning(f"Using API-suggested retry delay: {wait_time} seconds")
                 
                 if daily_limit:
-                    error_msg = api_error_message if api_error_message else "Daily quota limit exhausted. Quota resets daily."
-                    logger.error(f"Daily quota limit detected. API message: {error_msg}")
-                    raise GeminiQuotaExceededError(error_msg, is_daily_limit=True)
+                    if not api_error_message:
+                        api_error_message = "Daily quota limit exceeded"
+                    logger.error(f"Daily quota limit detected. API message: {api_error_message}")
+                    raise GeminiQuotaExceededError(api_error_message, is_daily_limit=True)
                 
                 if attempt < max_retries - 1:
                     if wait_time > 120:
@@ -502,11 +503,42 @@ def process_pdf(pdf_path):
                     time.sleep(wait_time)
                     continue
                 else:
-                    error_msg = api_error_message if api_error_message else "Rate limit hit. All retry attempts exhausted."
-                    logger.error(f"Rate limit exhausted. API message: {error_msg}")
-                    raise GeminiQuotaExceededError(error_msg, is_daily_limit=False, retry_after=wait_time)
+                    if not api_error_message:
+                        api_error_message = "Rate limit exceeded"
+                    logger.error(f"Rate limit exhausted. API message: {api_error_message}")
+                    raise GeminiQuotaExceededError(api_error_message, is_daily_limit=False, retry_after=wait_time)
                 
-            response.raise_for_status()
+            if response.status_code != 200:
+                try:
+                    error_data = response.json()
+                    logger.error(f"API returned error status {response.status_code}. Full response: {json.dumps(error_data, indent=2)}")
+                    
+                    error_obj = error_data.get('error', {})
+                    api_error_message = error_obj.get('message', f'API returned status {response.status_code}')
+                    error_code = error_obj.get('code', response.status_code)
+                    error_status = error_obj.get('status', 'UNKNOWN')
+                    
+                    if response.status_code == 400:
+                        raise GeminiAPIError(api_error_message, status_code=400, error_code=error_status)
+                    elif response.status_code == 401:
+                        raise GeminiAPIError("API authentication failed. Please check your API key.", status_code=401, error_code="UNAUTHENTICATED")
+                    elif response.status_code == 403:
+                        raise GeminiAPIError("API access forbidden. Please check your API key permissions.", status_code=403, error_code="PERMISSION_DENIED")
+                    elif response.status_code == 429:
+                        raise GeminiAPIError(api_error_message, status_code=429, error_code=error_status)
+                    elif response.status_code >= 500:
+                        raise GeminiAPIError(f"API server error: {api_error_message}", status_code=response.status_code, error_code=error_status)
+                    else:
+                        raise GeminiAPIError(api_error_message, status_code=response.status_code, error_code=error_status)
+                except json.JSONDecodeError:
+                    logger.error(f"API returned non-JSON error response: {response.text[:500]}")
+                    raise GeminiAPIError(f"API returned error status {response.status_code}: {response.text[:200]}", status_code=response.status_code)
+                except (GeminiQuotaExceededError, GeminiAPIError):
+                    raise
+                except Exception as e:
+                    logger.error(f"Error parsing API error response: {e}")
+                    raise GeminiAPIError(f"API returned error status {response.status_code}", status_code=response.status_code)
+            
             result = response.json()
             
             if not result.get('candidates') or len(result['candidates']) == 0:
@@ -565,45 +597,42 @@ def process_pdf(pdf_path):
             if response:
                 logger.error(f"Status Code: {response.status_code}")
                 try:
-                    logger.error(f"API Response: {response.text[:500]}")
-                except:
-                    pass
-                
-                if response.status_code == 400:
-                    try:
-                        error_data = response.json()
-                        if 'error' in error_data and 'message' in error_data['error']:
-                            error_msg = error_data['error']['message']
-                            if 'location' in error_msg.lower() or 'region' in error_msg.lower():
-                                error_msg = "Gemini API region restriction detected. The API may not be available in your region."
-                                logger.error(error_msg)
-                                raise GeminiAPIError(error_msg, status_code=400, error_code="REGION_RESTRICTED")
-                    except:
-                        pass
-                        
-            if response and response.status_code == 429:
-                retry_after = response.headers.get('Retry-After')
-                if retry_after:
-                    try:
-                        wait_time = int(retry_after)
-                    except ValueError:
-                        wait_time = min(120, 10 * (2 ** attempt))
-                else:
-                    wait_time = min(120, 10 * (2 ** attempt))
-                
-                if attempt < max_retries - 1:
-                    logger.warning(f"Rate limit in exception handler. Waiting {wait_time} seconds...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    error_msg = "Rate limit: All retry attempts exhausted in exception handler"
-                    logger.error(error_msg)
-                    raise GeminiQuotaExceededError(error_msg, is_daily_limit=False)
+                    error_data = response.json()
+                    logger.error(f"API Error Response: {json.dumps(error_data, indent=2)}")
+                    
+                    error_obj = error_data.get('error', {})
+                    api_error_message = error_obj.get('message', f'API request failed: {str(e)}')
+                    error_code = error_obj.get('code', response.status_code)
+                    error_status = error_obj.get('status', 'UNKNOWN')
+                    
+                    if response.status_code == 400:
+                        if 'location' in api_error_message.lower() or 'region' in api_error_message.lower():
+                            raise GeminiAPIError(api_error_message, status_code=400, error_code="REGION_RESTRICTED")
+                        else:
+                            raise GeminiAPIError(api_error_message, status_code=400, error_code=error_status)
+                    elif response.status_code == 401:
+                        raise GeminiAPIError("API authentication failed. Please check your API key.", status_code=401, error_code="UNAUTHENTICATED")
+                    elif response.status_code == 403:
+                        raise GeminiAPIError("API access forbidden. Please check your API key permissions.", status_code=403, error_code="PERMISSION_DENIED")
+                    elif response.status_code == 429:
+                        raise GeminiQuotaExceededError(api_error_message, is_daily_limit=False)
+                    elif response.status_code >= 500:
+                        raise GeminiAPIError(f"API server error: {api_error_message}", status_code=response.status_code, error_code=error_status)
+                    else:
+                        raise GeminiAPIError(api_error_message, status_code=response.status_code, error_code=error_status)
+                except json.JSONDecodeError:
+                    logger.error(f"API returned non-JSON error response: {response.text[:500]}")
+                    if response.status_code == 429:
+                        raise GeminiQuotaExceededError(f"Rate limit exceeded (status {response.status_code})", is_daily_limit=False)
+                    else:
+                        raise GeminiAPIError(f"API returned error status {response.status_code}: {response.text[:200]}", status_code=response.status_code)
+                except (GeminiQuotaExceededError, GeminiAPIError):
+                    raise
             elif attempt < max_retries - 1:
                 time.sleep(2)
                 continue
             else:
-                error_msg = f"Max retries reached for API request: {str(e)}"
+                error_msg = f"API request failed after multiple attempts: {str(e)}"
                 logger.error(error_msg)
                 logger.error(traceback.format_exc())
                 raise GeminiAPIError(error_msg, status_code=502)
