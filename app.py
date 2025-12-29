@@ -1,5 +1,9 @@
 import os
 import json
+import logging
+import sys
+import traceback
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from models import db, Theater, Show, Production, Person, Credit
 from extraction_service import process_pdf
@@ -9,6 +13,17 @@ from config import Config
 app = Flask(__name__)
 app.config.from_object(Config)
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('app.log')
+    ]
+)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 ALL_CATEGORIES = [
     'Cast',
@@ -81,11 +96,23 @@ def index():
 @app.route("/upload", methods=["POST"])
 def upload():
     path = None
+    upload_start_time = datetime.now()
+    filename = None
+    
     try:
+        logger.info("=" * 80)
+        logger.info(f"UPLOAD REQUEST STARTED at {upload_start_time}")
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Content type: {request.content_type}")
+        logger.info(f"Content length: {request.content_length}")
+        
         if "file" not in request.files:
+            logger.warning("Upload failed: No file part in request")
             return jsonify({"error": "No file part"}), 400
+        
         file = request.files["file"]
         if file.filename == "":
+            logger.warning("Upload failed: Empty filename")
             return jsonify({"error": "No selected file"}), 400
         
         if file and file.filename.endswith(".pdf"):
@@ -98,27 +125,78 @@ def upload():
                 file.seek(0)
                 
                 max_size = 10 * 1024 * 1024
+                logger.info(f"File: {filename}, Size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)")
+                
                 if file_size > max_size:
+                    logger.warning(f"Upload failed: File too large ({file_size / (1024*1024):.2f} MB)")
                     return jsonify({"error": f"File too large. Maximum size is {max_size // (1024*1024)}MB"}), 400
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Could not determine file size: {e}")
             
+            logger.info(f"Saving file to: {path}")
             file.save(path)
+            logger.info(f"File saved successfully")
             
             try:
-                print(f"Starting PDF processing for: {filename}")
-                data = process_pdf(path)
-                print(f"PDF processing completed for: {filename}")
-                if data:
-                    print(f"Data extracted successfully. Keys: {list(data.keys())}")
-                else:
-                    print(f"Warning: process_pdf returned None for: {filename}")
+                import psutil
+                process = psutil.Process()
+                mem_before = process.memory_info().rss / 1024 / 1024
+                logger.info(f"Memory before processing: {mem_before:.2f} MB")
+            except ImportError:
+                logger.info("psutil not available for memory monitoring")
             except Exception as e:
-                import traceback
+                logger.warning(f"Could not check memory: {e}")
+            
+            try:
+                logger.info(f"Starting PDF processing for: {filename}")
+                processing_start = datetime.now()
+                
+                data = process_pdf(path)
+                
+                processing_time = (datetime.now() - processing_start).total_seconds()
+                logger.info(f"PDF processing completed in {processing_time:.2f} seconds")
+                
+                if data:
+                    logger.info(f"Data extracted successfully. Keys: {list(data.keys())}")
+                else:
+                    logger.warning(f"process_pdf returned None for: {filename}")
+                    
+            except MemoryError as e:
+                logger.error(f"MEMORY ERROR during PDF processing for {filename}: {e}")
+                logger.error(traceback.format_exc())
+                return jsonify({
+                    "error": "Extraction failed: Out of memory",
+                    "message": "The PDF is too large or complex to process. Please try a smaller file or contact support."
+                }), 500
+            except TimeoutError as e:
+                logger.error(f"TIMEOUT ERROR during PDF processing for {filename}: {e}")
+                logger.error(traceback.format_exc())
+                return jsonify({
+                    "error": "Extraction failed: Request timeout",
+                    "message": "The processing took too long. Please try again or use a smaller PDF file."
+                }), 500
+            except Exception as e:
+                error_type = type(e).__name__
+                error_msg = str(e).lower()
+                
+                if 'timeout' in error_msg or 'Timeout' in error_type:
+                    logger.error(f"TIMEOUT ERROR during PDF processing for {filename}: {e}")
+                    logger.error(traceback.format_exc())
+                    return jsonify({
+                        "error": "Extraction failed: API timeout",
+                        "message": "The AI service took too long to respond. Please try again."
+                    }), 500
+            except Exception as e:
+                error_type = type(e).__name__
                 error_msg = str(e)
-                traceback.print_exc()
-                print(f"PDF processing error for {filename}: {error_msg}")
-                return jsonify({"error": f"Extraction failed: {error_msg}"}), 500
+                logger.error(f"EXCEPTION during PDF processing for {filename}")
+                logger.error(f"Exception type: {error_type}")
+                logger.error(f"Exception message: {error_msg}")
+                logger.error(traceback.format_exc())
+                return jsonify({
+                    "error": f"Extraction failed: {error_type}",
+                    "message": f"An error occurred during processing: {error_msg}"
+                }), 500
             finally:
                 import time
                 time.sleep(0.1)
@@ -136,13 +214,16 @@ def upload():
                     
             if not data:
                 from config import Config
-                print(f"Error: No data returned from process_pdf for {filename}")
+                logger.error(f"No data returned from process_pdf for {filename}")
                 if Config.TEST_MODE:
-                    return jsonify({"error": "Extraction failed: Test mode mock data generation failed"}), 500
+                    return jsonify({
+                        "error": "Extraction failed: Test mode mock data generation failed",
+                        "message": "The test data generation encountered an error. Please check the logs."
+                    }), 500
                 else:
                     return jsonify({
-                        "error": "Extraction failed: No data returned from API",
-                        "message": "This may be due to API region restrictions, timeout, or API errors. Please try again or enable TEST_MODE=true in .env to test with mock data."
+                        "error": "Extraction failed: No data returned",
+                        "message": "The AI service did not return any data. This may be due to API region restrictions, timeout, or API errors. Please try again."
                     }), 500
 
             all_credits = []
@@ -253,28 +334,57 @@ def upload():
                     data[field] = data.get(field, '')
             
             try:
+                logger.info("Rendering review template")
                 return render_template("review.html", data=data, filename=filename)
             except Exception as e:
-                import traceback
-                traceback.print_exc()
-                print(f"Template rendering error: {e}")
-                print(f"Data keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+                logger.error(f"TEMPLATE RENDERING ERROR: {e}")
+                logger.error(traceback.format_exc())
+                logger.error(f"Data keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
                 return jsonify({
                     "error": "Failed to render review page",
-                    "message": str(e)
+                    "message": f"An error occurred while displaying the results: {str(e)}"
                 }), 500
         
         return jsonify({"error": "Invalid file type"}), 400
-    except Exception as e:
-        import traceback
-        error_msg = str(e)
-        traceback.print_exc()
+        
+    except MemoryError as e:
+        logger.error(f"MEMORY ERROR in upload route: {e}")
+        logger.error(traceback.format_exc())
         if path and os.path.exists(path):
             try:
                 os.remove(path)
             except:
                 pass
-        return jsonify({"error": f"Internal server error: {error_msg}"}), 500
+        return jsonify({
+            "error": "Upload failed: Out of memory",
+            "message": "The server ran out of memory processing your request. Please try a smaller file."
+        }), 500
+    except Exception as e:
+        error_type = type(e).__name__
+        error_msg = str(e)
+        logger.error(f"UNHANDLED EXCEPTION in upload route")
+        logger.error(f"Exception type: {error_type}")
+        logger.error(f"Exception message: {error_msg}")
+        logger.error(traceback.format_exc())
+        
+        upload_duration = (datetime.now() - upload_start_time).total_seconds()
+        logger.info(f"Upload request failed after {upload_duration:.2f} seconds")
+        logger.info("=" * 80)
+        
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception as cleanup_error:
+                logger.warning(f"Could not clean up file {path}: {cleanup_error}")
+        
+        return jsonify({
+            "error": f"Upload failed: {error_type}",
+            "message": f"An unexpected error occurred: {error_msg}"
+        }), 500
+    finally:
+        upload_duration = (datetime.now() - upload_start_time).total_seconds()
+        logger.info(f"Upload request completed in {upload_duration:.2f} seconds")
+        logger.info("=" * 80)
 
 @app.route("/dashboard")
 def dashboard():

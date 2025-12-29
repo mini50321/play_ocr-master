@@ -4,10 +4,14 @@ import base64
 import requests
 import fitz
 import time
+import logging
+import traceback
 from dotenv import load_dotenv
 from config import Config
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 def get_gemini_key():
     key = os.getenv("GEMINI_API_KEY")
@@ -202,11 +206,11 @@ def get_pdf_images(pdf_path):
     images = []
     doc = None
     try:
-        print(f"Opening PDF: {pdf_path}")
+        logger.info(f"Opening PDF: {pdf_path}")
         doc = fitz.open(pdf_path)
         max_pages = 10
         page_count = min(len(doc), max_pages)
-        print(f"Processing {page_count} pages from PDF")
+        logger.info(f"Processing {page_count} pages from PDF (max {max_pages} pages)")
         
         for page_num in range(page_count):
             try:
@@ -217,17 +221,22 @@ def get_pdf_images(pdf_path):
                 images.append(b64_img)
                 pix = None
                 page = None
-                print(f"Processed page {page_num + 1}/{page_count}")
+                logger.debug(f"Processed page {page_num + 1}/{page_count}")
+            except MemoryError as e:
+                logger.error(f"MEMORY ERROR processing page {page_num}: {e}")
+                logger.error(traceback.format_exc())
+                raise
             except Exception as e:
-                print(f"Error processing page {page_num}: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.warning(f"Error processing page {page_num}: {e}")
+                logger.debug(traceback.format_exc())
                 continue
-        print(f"Successfully processed {len(images)} pages")
+        logger.info(f"Successfully processed {len(images)} pages")
+    except MemoryError:
+        logger.error(f"MEMORY ERROR processing PDF {pdf_path}")
+        raise
     except Exception as e:
-        print(f"Error processing PDF {pdf_path}: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error processing PDF {pdf_path}: {e}")
+        logger.error(traceback.format_exc())
         raise
     finally:
         if doc:
@@ -260,20 +269,23 @@ def process_pdf(pdf_path):
         print("API Key or API URL missing.")
         return None
 
-    print(f"Processing {pdf_path}...")
+    logger.info(f"Processing {pdf_path}...")
     try:
         images = get_pdf_images(pdf_path)
+    except MemoryError as e:
+        logger.error(f"MEMORY ERROR extracting images from PDF: {e}")
+        logger.error(traceback.format_exc())
+        return None
     except Exception as e:
-        print(f"Failed to extract images from PDF: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Failed to extract images from PDF: {e}")
+        logger.error(traceback.format_exc())
         return None
     
     if not images:
-        print(f"No content found for {pdf_path}")
+        logger.warning(f"No content found for {pdf_path}")
         return None
     
-    print(f"Extracted {len(images)} images, preparing API request...")
+    logger.info(f"Extracted {len(images)} images, preparing API request...")
 
     preview_image_path = None
     try:
@@ -373,7 +385,7 @@ def process_pdf(pdf_path):
             
             if response.status_code == 429:
                 wait_time = (attempt + 1) * 5
-                print(f"Rate limit hit. Retrying in {wait_time} seconds...")
+                logger.warning(f"Rate limit hit. Retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
                 continue
                 
@@ -381,14 +393,14 @@ def process_pdf(pdf_path):
             result = response.json()
             
             if not result.get('candidates') or len(result['candidates']) == 0:
-                print("API returned no candidates")
+                logger.warning(f"API returned no candidates (attempt {attempt + 1}/{max_retries})")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                     continue
                 return None
             
             if 'content' not in result['candidates'][0] or 'parts' not in result['candidates'][0]['content']:
-                print("Unexpected API response structure")
+                logger.warning(f"Unexpected API response structure (attempt {attempt + 1}/{max_retries})")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                     continue
@@ -400,7 +412,7 @@ def process_pdf(pdf_path):
             try:
                 data = json.loads(content_text)
                 if not isinstance(data, dict):
-                    print(f"Error: Parsed data is not a dictionary: {type(data)}")
+                    logger.error(f"Parsed data is not a dictionary: {type(data)} (attempt {attempt + 1}/{max_retries})")
                     if attempt < max_retries - 1:
                         time.sleep(2)
                         continue
@@ -408,28 +420,29 @@ def process_pdf(pdf_path):
                 
                 if preview_image_path:
                     data['preview_image'] = preview_image_path
-                print(f"Successfully parsed JSON data with keys: {list(data.keys())}")
+                logger.info(f"Successfully parsed JSON data with keys: {list(data.keys())}")
                 return data
             except json.JSONDecodeError as e:
-                print(f"JSON decode error (attempt {attempt + 1}/{max_retries}): {e}")
-                print(f"Content text preview: {content_text[:200]}")
+                logger.error(f"JSON decode error (attempt {attempt + 1}/{max_retries}): {e}")
+                logger.debug(f"Content text preview: {content_text[:200]}")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                     continue
                 return None
 
-        except requests.exceptions.Timeout:
-            print(f"API request timeout (attempt {attempt + 1}/{max_retries})")
+        except requests.exceptions.Timeout as e:
+            logger.error(f"API REQUEST TIMEOUT (attempt {attempt + 1}/{max_retries}): {e}")
+            logger.error(traceback.format_exc())
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
             return None
         except requests.exceptions.RequestException as e:
-            print(f"API request error (attempt {attempt + 1}/{max_retries}): {e}")
+            logger.error(f"API REQUEST ERROR (attempt {attempt + 1}/{max_retries}): {e}")
             if response:
-                print(f"Status Code: {response.status_code}")
+                logger.error(f"Status Code: {response.status_code}")
                 try:
-                    print(f"API Response: {response.text[:500]}")
+                    logger.error(f"API Response: {response.text[:500]}")
                 except:
                     pass
                 
@@ -439,7 +452,7 @@ def process_pdf(pdf_path):
                         if 'error' in error_data and 'message' in error_data['error']:
                             error_msg = error_data['error']['message']
                             if 'location' in error_msg.lower() or 'region' in error_msg.lower():
-                                print("Error: Gemini API region restriction")
+                                logger.error("Gemini API region restriction detected")
                                 return None
                     except:
                         pass
@@ -453,27 +466,32 @@ def process_pdf(pdf_path):
                 time.sleep(2)
                 continue
             else:
-                import traceback
-                traceback.print_exc()
+                logger.error(traceback.format_exc())
                 break
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            print(f"Error parsing API response (attempt {attempt + 1}/{max_retries}): {e}")
+        except (KeyError, IndexError) as e:
+            logger.error(f"Error parsing API response structure (attempt {attempt + 1}/{max_retries}): {e}")
+            logger.error(traceback.format_exc())
             if response:
                 try:
-                    print(f"Response text: {response.text[:500]}")
+                    logger.debug(f"Response text: {response.text[:500]}")
                 except:
                     pass
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
             return None
+        except MemoryError as e:
+            logger.error(f"MEMORY ERROR during API processing (attempt {attempt + 1}/{max_retries}): {e}")
+            logger.error(traceback.format_exc())
+            return None
         except Exception as e:
-            print(f"Unexpected error (attempt {attempt + 1}/{max_retries}): {e}")
-            import traceback
-            traceback.print_exc()
+            error_type = type(e).__name__
+            logger.error(f"UNEXPECTED ERROR (attempt {attempt + 1}/{max_retries}): {error_type} - {e}")
+            logger.error(traceback.format_exc())
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
             break
     
+    logger.error("All retry attempts exhausted. Returning None.")
     return None
