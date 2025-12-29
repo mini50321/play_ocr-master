@@ -19,9 +19,17 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('app.log')
+        logging.StreamHandler(sys.stderr)
     ]
 )
+
+try:
+    file_handler = logging.FileHandler('app.log')
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
+except Exception as e:
+    print(f"Could not create log file (this is OK on Render.com): {e}")
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -89,11 +97,109 @@ def init_db():
 
 init_db()
 
+@app.before_request
+def log_request_info():
+    if request.path == '/upload':
+        logger.info(f"Request: {request.method} {request.path}")
+        logger.info(f"Content-Type: {request.content_type}")
+        logger.info(f"Content-Length: {request.content_length}")
+
+@app.after_request
+def log_response_info(response):
+    if request.path == '/upload' and response.status_code >= 400:
+        logger.error(f"Response status: {response.status_code}")
+        try:
+            if response.is_json:
+                logger.error(f"Response JSON: {response.get_json()}")
+        except:
+            pass
+    return response
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error("=" * 80)
+    logger.error("FLASK 500 ERROR HANDLER TRIGGERED")
+    logger.error(f"Error: {error}")
+    logger.error(traceback.format_exc())
+    logger.error("=" * 80)
+    
+    if request.is_json or request.path == '/upload':
+        return jsonify({
+            "error": "Internal server error",
+            "message": "An unexpected error occurred. Please check the logs for details."
+        }), 500
+    else:
+        return jsonify({
+            "error": "Internal server error",
+            "message": "An unexpected error occurred. Please check the logs for details."
+        }), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    logger.error("=" * 80)
+    logger.error("UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER")
+    logger.error(f"Exception type: {type(e).__name__}")
+    logger.error(f"Exception message: {str(e)}")
+    logger.error(traceback.format_exc())
+    logger.error("=" * 80)
+    
+    if isinstance(e, MemoryError):
+        error_response = {
+            "error": "Out of memory",
+            "message": "The server ran out of memory processing your request. Please try a smaller file."
+        }
+    elif isinstance(e, TimeoutError):
+        error_response = {
+            "error": "Request timeout",
+            "message": "The request took too long to process. Please try again."
+        }
+    else:
+        error_response = {
+            "error": f"Server error: {type(e).__name__}",
+            "message": f"An error occurred: {str(e)}"
+        }
+    
+    if request.is_json or request.path == '/upload':
+        return jsonify(error_response), 500
+    else:
+        return jsonify(error_response), 500
+
 @app.route("/")
 def index():
     return render_template("upload.html")
 
+def ensure_json_response(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.error("=" * 80)
+            logger.error("EXCEPTION IN UPLOAD ROUTE WRAPPER")
+            logger.error(f"Exception type: {type(e).__name__}")
+            logger.error(f"Exception message: {str(e)}")
+            logger.error(traceback.format_exc())
+            logger.error("=" * 80)
+            
+            if isinstance(e, MemoryError):
+                return jsonify({
+                    "error": "Out of memory",
+                    "message": "The server ran out of memory. Please try a smaller file."
+                }), 500
+            elif isinstance(e, TimeoutError) or 'timeout' in str(e).lower():
+                return jsonify({
+                    "error": "Request timeout",
+                    "message": "The request took too long. Please try again."
+                }), 500
+            else:
+                return jsonify({
+                    "error": f"Upload failed: {type(e).__name__}",
+                    "message": f"An error occurred: {str(e)}"
+                }), 500
+    wrapper.__name__ = func.__name__
+    return wrapper
+
 @app.route("/upload", methods=["POST"])
+@ensure_json_response
 def upload():
     path = None
     upload_start_time = datetime.now()

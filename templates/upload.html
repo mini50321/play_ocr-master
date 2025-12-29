@@ -6,7 +6,7 @@
         <h2 class="text-2xl font-bold mb-4 text-center">Upload Playbill PDF</h2>
         <p class="text-gray-500 text-center mb-8">Select a PDF to extract playbill data automatically using AI.</p>
 
-        <form action="/upload" method="post" enctype="multipart/form-data" class="space-y-6" id="uploadForm">
+        <form action="/upload" method="post" enctype="multipart/form-data" class="space-y-6" id="uploadForm" onsubmit="return handleUpload(event)">
             <div class="flex items-center justify-center w-full">
                 <label for="dropzone-file"
                     class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
@@ -60,12 +60,44 @@
         }
     }
 
-    document.getElementById('uploadForm').onsubmit = function () {
-        document.getElementById('loading').classList.remove('hidden');
+    async function handleUpload(event) {
+        event.preventDefault();
+        
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+        const loadingDiv = document.getElementById('loading');
         const submitBtn = document.getElementById('submitBtn');
+        
+        loadingDiv.classList.remove('hidden');
         submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
         submitBtn.disabled = true;
-    };
+        
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                const html = await response.text();
+                document.open();
+                document.write(html);
+                document.close();
+            } else {
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error', message: 'An error occurred' }));
+                loadingDiv.classList.add('hidden');
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                submitBtn.disabled = false;
+                alert(errorData.message || errorData.error || 'Upload failed. Please try again.');
+            }
+        } catch (error) {
+            loadingDiv.classList.add('hidden');
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            submitBtn.disabled = false;
+            console.error('Upload error:', error);
+            alert('Network error. Please check your connection and try again.');
+        }
+    }
 </script>
 {% endblock %}
 
