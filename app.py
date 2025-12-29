@@ -336,7 +336,7 @@ def upload():
                 else:
                     return jsonify({
                         "error": "Extraction failed: No data returned",
-                        "message": "The AI service did not return any data. This may be due to API region restrictions, timeout, or API errors. Please try again."
+                        "message": "The AI service did not return any data. This may be due to API rate limits (too many requests), region restrictions, timeout, or API errors. Please wait a few minutes and try again."
                     }), 500
 
             all_credits = []

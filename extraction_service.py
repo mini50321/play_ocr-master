@@ -404,7 +404,7 @@ def process_pdf(pdf_path):
     payload_size = len(json.dumps(payload))
     logger.info(f"API payload size: {payload_size / (1024*1024):.2f} MB")
 
-    max_retries = 3
+    max_retries = 5
     api_start_time = time.time()
     for attempt in range(max_retries):
         response = None
@@ -418,13 +418,39 @@ def process_pdf(pdf_path):
                 timeout=(30, 90)
             )
             request_duration = time.time() - request_start
-            logger.info(f"API request completed in {request_duration:.2f} seconds")
+            logger.info(f"API request completed in {request_duration:.2f} seconds, status: {response.status_code}")
             
             if response.status_code == 429:
-                wait_time = (attempt + 1) * 5
-                logger.warning(f"Rate limit hit. Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-                continue
+                retry_after = response.headers.get('Retry-After')
+                if retry_after:
+                    try:
+                        wait_time = int(retry_after)
+                        logger.warning(f"Rate limit hit. Retry-After header: {wait_time} seconds")
+                    except ValueError:
+                        wait_time = min(60, 10 * (2 ** attempt))
+                        logger.warning(f"Rate limit hit. Invalid Retry-After header, using exponential backoff: {wait_time} seconds")
+                else:
+                    wait_time = min(120, 10 * (2 ** attempt))
+                    logger.warning(f"Rate limit hit (no Retry-After header). Using exponential backoff: {wait_time} seconds")
+                
+                if attempt < max_retries - 1:
+                    try:
+                        error_data = response.json()
+                        logger.warning(f"Rate limit error details: {error_data}")
+                    except:
+                        logger.warning(f"Rate limit response text: {response.text[:200]}")
+                    
+                    logger.info(f"Waiting {wait_time} seconds before retry...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Rate limit hit on final attempt. All retries exhausted.")
+                    try:
+                        error_data = response.json()
+                        logger.error(f"Final rate limit error: {error_data}")
+                    except:
+                        logger.error(f"Final rate limit response: {response.text[:500]}")
+                    return None
                 
             response.raise_for_status()
             result = response.json()
@@ -500,16 +526,29 @@ def process_pdf(pdf_path):
                         pass
                         
             if response and response.status_code == 429:
-                wait_time = (attempt + 1) * 5
+                retry_after = response.headers.get('Retry-After')
+                if retry_after:
+                    try:
+                        wait_time = int(retry_after)
+                    except ValueError:
+                        wait_time = min(120, 10 * (2 ** attempt))
+                else:
+                    wait_time = min(120, 10 * (2 ** attempt))
+                
                 if attempt < max_retries - 1:
+                    logger.warning(f"Rate limit in exception handler. Waiting {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue
+                else:
+                    logger.error("Rate limit: All retry attempts exhausted in exception handler")
+                    return None
             elif attempt < max_retries - 1:
                 time.sleep(2)
                 continue
             else:
+                logger.error(f"Max retries reached for API request. Last error: {e}")
                 logger.error(traceback.format_exc())
-                break
+                return None
         except (KeyError, IndexError) as e:
             logger.error(f"Error parsing API response structure (attempt {attempt + 1}/{max_retries}): {e}")
             logger.error(traceback.format_exc())
@@ -533,7 +572,7 @@ def process_pdf(pdf_path):
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
-            break
+            return None
     
     logger.error("All retry attempts exhausted. Returning None.")
     return None
