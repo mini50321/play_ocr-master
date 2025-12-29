@@ -14,21 +14,44 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+class GeminiQuotaExceededError(Exception):
+    def __init__(self, message, is_daily_limit=False, retry_after=None):
+        self.message = message
+        self.is_daily_limit = is_daily_limit
+        self.retry_after = retry_after
+        super().__init__(self.message)
+
+class GeminiAPIError(Exception):
+    def __init__(self, message, status_code=None, error_code=None):
+        self.message = message
+        self.status_code = status_code
+        self.error_code = error_code
+        super().__init__(self.message)
+
+class GeminiAPIDisabledError(Exception):
+    def __init__(self, message="Gemini API is disabled in configuration"):
+        self.message = message
+        super().__init__(self.message)
+
 def get_gemini_key():
-    key = os.getenv("GEMINI_API_KEY")
+    if not Config.GEMINI_API_ENABLED:
+        raise GeminiAPIDisabledError("Gemini API is disabled via GEMINI_API_ENABLED=false")
+    
+    key = Config.GEMINI_CLIENT_API_KEY or Config.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
     if not key:
-        raise ValueError("GEMINI_API_KEY not found in environment variables")
+        raise ValueError("No Gemini API key found. Set GEMINI_API_KEY or GEMINI_CLIENT_API_KEY")
     return key
 
 try:
     API_KEY = get_gemini_key()
-except ValueError as e:
-    print(f"Error loading API key: {e}")
-    API_KEY = None
-
-if API_KEY:
     API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={API_KEY}"
-else:
+except (GeminiAPIDisabledError, ValueError) as e:
+    logger.warning(f"Gemini API not available: {e}")
+    API_KEY = None
+    API_URL = None
+except Exception as e:
+    logger.error(f"Error loading API key: {e}")
+    API_KEY = None
     API_URL = None
 
 def get_mock_data(pdf_path):
@@ -284,10 +307,6 @@ def process_pdf(pdf_path):
         
         return data
     
-    if not API_KEY or not API_URL:
-        print("API Key or API URL missing.")
-        return None
-
     logger.info(f"Processing {pdf_path}...")
     try:
         images = get_pdf_images(pdf_path)
@@ -468,8 +487,9 @@ def process_pdf(pdf_path):
                     logger.warning(f"Using API-suggested retry delay: {wait_time} seconds")
                 
                 if daily_limit:
-                    logger.error("Daily quota limit exhausted (20 requests/day for free tier). Quota resets daily. Cannot retry.")
-                    return None
+                    error_msg = "Daily quota limit exhausted (20 requests/day for free tier). Quota resets daily."
+                    logger.error(error_msg)
+                    raise GeminiQuotaExceededError(error_msg, is_daily_limit=True)
                 
                 if attempt < max_retries - 1:
                     if wait_time > 120:
@@ -479,8 +499,9 @@ def process_pdf(pdf_path):
                     time.sleep(wait_time)
                     continue
                 else:
-                    logger.error(f"Rate limit hit on final attempt. All retries exhausted.")
-                    return None
+                    error_msg = "Rate limit hit. All retry attempts exhausted."
+                    logger.error(error_msg)
+                    raise GeminiQuotaExceededError(error_msg, is_daily_limit=False, retry_after=wait_time)
                 
             response.raise_for_status()
             result = response.json()
@@ -490,14 +511,14 @@ def process_pdf(pdf_path):
                 if attempt < max_retries - 1:
                     time.sleep(2)
                     continue
-                return None
+                raise GeminiAPIError("API returned no candidates in response", status_code=502)
             
             if 'content' not in result['candidates'][0] or 'parts' not in result['candidates'][0]['content']:
                 logger.warning(f"Unexpected API response structure (attempt {attempt + 1}/{max_retries})")
                 if attempt < max_retries - 1:
                     time.sleep(2)
                     continue
-                return None
+                raise GeminiAPIError("Unexpected API response structure", status_code=502)
             
             content_text = result['candidates'][0]['content']['parts'][0]['text']
             content_text = content_text.replace("```json", "").replace("```", "").strip()
@@ -509,7 +530,7 @@ def process_pdf(pdf_path):
                     if attempt < max_retries - 1:
                         time.sleep(2)
                         continue
-                    return None
+                    raise GeminiAPIError("API returned invalid data format", status_code=502)
                 
                 if preview_image_path:
                     data['preview_image'] = preview_image_path
@@ -521,7 +542,7 @@ def process_pdf(pdf_path):
                 if attempt < max_retries - 1:
                     time.sleep(2)
                     continue
-                return None
+                raise GeminiAPIError(f"Failed to parse API response as JSON: {str(e)}", status_code=502)
 
         except requests.exceptions.Timeout as e:
             elapsed = time.time() - api_start_time
@@ -533,8 +554,9 @@ def process_pdf(pdf_path):
                     logger.info(f"Waiting {wait_time:.1f} seconds before retry...")
                     time.sleep(wait_time)
                 continue
-            logger.error("API timeout: All retry attempts exhausted")
-            return None
+            error_msg = "API request timed out after multiple retry attempts"
+            logger.error(error_msg)
+            raise GeminiAPIError(error_msg, status_code=408)
         except requests.exceptions.RequestException as e:
             logger.error(f"API REQUEST ERROR (attempt {attempt + 1}/{max_retries}): {e}")
             if response:
@@ -550,8 +572,9 @@ def process_pdf(pdf_path):
                         if 'error' in error_data and 'message' in error_data['error']:
                             error_msg = error_data['error']['message']
                             if 'location' in error_msg.lower() or 'region' in error_msg.lower():
-                                logger.error("Gemini API region restriction detected")
-                                return None
+                                error_msg = "Gemini API region restriction detected. The API may not be available in your region."
+                                logger.error(error_msg)
+                                raise GeminiAPIError(error_msg, status_code=400, error_code="REGION_RESTRICTED")
                     except:
                         pass
                         
@@ -570,15 +593,17 @@ def process_pdf(pdf_path):
                     time.sleep(wait_time)
                     continue
                 else:
-                    logger.error("Rate limit: All retry attempts exhausted in exception handler")
-                    return None
+                    error_msg = "Rate limit: All retry attempts exhausted in exception handler"
+                    logger.error(error_msg)
+                    raise GeminiQuotaExceededError(error_msg, is_daily_limit=False)
             elif attempt < max_retries - 1:
                 time.sleep(2)
                 continue
             else:
-                logger.error(f"Max retries reached for API request. Last error: {e}")
+                error_msg = f"Max retries reached for API request: {str(e)}"
+                logger.error(error_msg)
                 logger.error(traceback.format_exc())
-                return None
+                raise GeminiAPIError(error_msg, status_code=502)
         except (KeyError, IndexError) as e:
             logger.error(f"Error parsing API response structure (attempt {attempt + 1}/{max_retries}): {e}")
             logger.error(traceback.format_exc())
@@ -590,11 +615,13 @@ def process_pdf(pdf_path):
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
-            return None
+            raise GeminiAPIError(f"Error parsing API response structure: {str(e)}", status_code=502)
         except MemoryError as e:
             logger.error(f"MEMORY ERROR during API processing (attempt {attempt + 1}/{max_retries}): {e}")
             logger.error(traceback.format_exc())
-            return None
+            raise
+        except (GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError):
+            raise
         except Exception as e:
             error_type = type(e).__name__
             logger.error(f"UNEXPECTED ERROR (attempt {attempt + 1}/{max_retries}): {error_type} - {e}")
@@ -602,7 +629,8 @@ def process_pdf(pdf_path):
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
-            return None
+            raise GeminiAPIError(f"Unexpected error during API processing: {str(e)}", status_code=500)
     
-    logger.error("All retry attempts exhausted. Returning None.")
-    return None
+    error_msg = "Failed to process PDF after multiple API attempts"
+    logger.error(error_msg)
+    raise GeminiAPIError(error_msg, status_code=500)

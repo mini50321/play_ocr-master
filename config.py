@@ -27,4 +27,7 @@ class Config:
     JOOMLA_THEATER_TABLE = os.getenv('JOOMLA_THEATER_TABLE', 'wa8wx_jbusinessdirectory_companies')
     
     TEST_MODE = os.getenv('TEST_MODE', 'false').lower() == 'true'
-
+    
+    GEMINI_API_ENABLED = os.getenv('GEMINI_API_ENABLED', 'true').lower() == 'true'
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', None)
+    GEMINI_CLIENT_API_KEY = os.getenv('GEMINI_CLIENT_API_KEY', None)

@@ -6,7 +6,7 @@ import traceback
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from models import db, Theater, Show, Production, Person, Credit
-from extraction_service import process_pdf
+from extraction_service import process_pdf, GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError
 from werkzeug.utils import secure_filename
 from config import Config
 
@@ -274,6 +274,33 @@ def upload():
                 else:
                     logger.warning(f"process_pdf returned None for: {filename}")
                     
+            except GeminiQuotaExceededError as e:
+                logger.error(f"GEMINI QUOTA EXCEEDED for {filename}: {e.message}")
+                logger.error(traceback.format_exc())
+                if e.is_daily_limit:
+                    return jsonify({
+                        "error": "Extraction failed: Daily quota exceeded",
+                        "message": "The AI service daily quota has been exceeded (20 requests/day for free tier). Please wait until the quota resets (daily at midnight) or upgrade your API plan. Check usage at https://ai.dev/usage?tab=rate-limit"
+                    }), 429
+                else:
+                    retry_msg = f" Please try again in {e.retry_after} seconds." if e.retry_after else ""
+                    return jsonify({
+                        "error": "Extraction failed: Rate limit exceeded",
+                        "message": f"The AI service rate limit has been exceeded.{retry_msg}"
+                    }), 429
+            except GeminiAPIError as e:
+                logger.error(f"GEMINI API ERROR for {filename}: {e.message} (status: {e.status_code}, code: {e.error_code})")
+                logger.error(traceback.format_exc())
+                return jsonify({
+                    "error": "Extraction failed: API error",
+                    "message": e.message
+                }), e.status_code or 502
+            except GeminiAPIDisabledError as e:
+                logger.warning(f"GEMINI API DISABLED for {filename}: {e.message}")
+                return jsonify({
+                    "error": "Extraction failed: API disabled",
+                    "message": "The AI service is currently disabled. Please contact support or enable it in configuration."
+                }), 503
             except MemoryError as e:
                 logger.error(f"MEMORY ERROR during PDF processing for {filename}: {e}")
                 logger.error(traceback.format_exc())
@@ -287,7 +314,7 @@ def upload():
                 return jsonify({
                     "error": "Extraction failed: Request timeout",
                     "message": "The processing took too long. Please try again or use a smaller PDF file."
-                }), 500
+                }), 504
             except Exception as e:
                 error_type = type(e).__name__
                 error_msg = str(e).lower()
@@ -298,18 +325,16 @@ def upload():
                     return jsonify({
                         "error": "Extraction failed: API timeout",
                         "message": "The AI service took too long to respond. Please try again."
+                    }), 504
+                else:
+                    logger.error(f"UNEXPECTED EXCEPTION during PDF processing for {filename}")
+                    logger.error(f"Exception type: {error_type}")
+                    logger.error(f"Exception message: {str(e)}")
+                    logger.error(traceback.format_exc())
+                    return jsonify({
+                        "error": "Extraction failed: Unexpected error",
+                        "message": f"An unexpected error occurred: {str(e)}"
                     }), 500
-            except Exception as e:
-                error_type = type(e).__name__
-                error_msg = str(e)
-                logger.error(f"EXCEPTION during PDF processing for {filename}")
-                logger.error(f"Exception type: {error_type}")
-                logger.error(f"Exception message: {error_msg}")
-                logger.error(traceback.format_exc())
-                return jsonify({
-                    "error": f"Extraction failed: {error_type}",
-                    "message": f"An error occurred during processing: {error_msg}"
-                }), 500
             finally:
                 import time
                 time.sleep(0.1)
@@ -326,7 +351,6 @@ def upload():
                             print(f"Warning: Could not delete {path} - file may be locked")
                     
             if not data:
-                from config import Config
                 logger.error(f"No data returned from process_pdf for {filename}")
                 if Config.TEST_MODE:
                     return jsonify({
@@ -335,9 +359,9 @@ def upload():
                     }), 500
                 else:
                     return jsonify({
-                        "error": "Extraction failed: API quota exceeded",
-                        "message": "The AI service quota has been exceeded. The free tier allows 20 requests per day. Please wait until the quota resets (daily) or upgrade your API plan. You can check your usage at https://ai.dev/usage?tab=rate-limit"
-                    }), 500
+                        "error": "Extraction failed: No data returned",
+                        "message": "The AI service did not return any data. This may be due to API errors, quota limits, or processing issues. Please try again or contact support."
+                    }), 502
 
             all_credits = []
             categories_map = [
