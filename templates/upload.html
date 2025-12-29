@@ -22,13 +22,13 @@
                         <p class="text-xs text-gray-500">PDF (MAX. 10MB)</p>
                     </div>
                     <input id="dropzone-file" name="file" type="file" class="hidden" accept=".pdf" required
-                        onchange="document.getElementById('file-chosen').textContent = this.files[0].name" />
+                        onchange="handleFileSelect(this)" />
                 </label>
             </div>
             <p id="file-chosen" class="text-center text-sm text-gray-700 italic h-5"></p>
 
-            <button type="submit" id="submitBtn"
-                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+            <button type="submit" id="submitBtn" disabled
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600">
                 Upload & Extract
             </button>
         </form>
@@ -47,10 +47,25 @@
 </div>
 
 <script>
+    function handleFileSelect(input) {
+        const submitBtn = document.getElementById('submitBtn');
+        const fileChosen = document.getElementById('file-chosen');
+        
+        if (input.files && input.files.length > 0) {
+            fileChosen.textContent = input.files[0].name;
+            submitBtn.disabled = false;
+        } else {
+            fileChosen.textContent = '';
+            submitBtn.disabled = true;
+        }
+    }
+
     document.getElementById('uploadForm').onsubmit = function () {
         document.getElementById('loading').classList.remove('hidden');
-        document.getElementById('submitBtn').classList.add('opacity-50', 'cursor-not-allowed');
-        document.getElementById('submitBtn').disabled = true;
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        submitBtn.disabled = true;
     };
 </script>
 {% endblock %}
+
