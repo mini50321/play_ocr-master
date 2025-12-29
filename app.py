@@ -279,14 +279,20 @@ def upload():
                 logger.error(traceback.format_exc())
                 if e.is_daily_limit:
                     return jsonify({
-                        "error": "Extraction failed: Daily quota exceeded",
-                        "message": "The AI service daily quota has been exceeded (20 requests/day for free tier). Please wait until the quota resets (daily at midnight) or upgrade your API plan. Check usage at https://ai.dev/usage?tab=rate-limit"
+                        "error": "Daily AI request limit reached",
+                        "message": "Daily AI request limit reached. Please try again tomorrow."
                     }), 429
                 else:
-                    retry_msg = f" Please try again in {e.retry_after} seconds." if e.retry_after else ""
+                    if e.retry_after and e.retry_after < 60:
+                        retry_minutes = max(1, int(e.retry_after / 60))
+                        retry_msg = f"Please try again in {retry_minutes} minute{'s' if retry_minutes > 1 else ''}."
+                    elif e.retry_after:
+                        retry_msg = f"Please try again in {int(e.retry_after)} seconds."
+                    else:
+                        retry_msg = "Please try again in a few moments."
                     return jsonify({
-                        "error": "Extraction failed: Rate limit exceeded",
-                        "message": f"The AI service rate limit has been exceeded.{retry_msg}"
+                        "error": "AI request rate limit reached",
+                        "message": f"AI request rate limit reached. {retry_msg}"
                     }), 429
             except GeminiAPIError as e:
                 logger.error(f"GEMINI API ERROR for {filename}: {e.message} (status: {e.status_code}, code: {e.error_code})")
