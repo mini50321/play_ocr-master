@@ -28,6 +28,7 @@ class Person(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     disciplines: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    photo: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
 
 class Production(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
