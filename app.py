@@ -684,10 +684,13 @@ def save():
             if not actor_name: continue
 
             normalized_name = normalize_name(actor_name)
-            person = Person.query.filter_by(name=normalized_name).first()
+            person = Person.query.filter(Person.name.ilike(normalized_name)).first()
             if not person:
                 person = Person(name=normalized_name, disciplines=category)
                 db.session.add(person)
+                db.session.flush()
+            elif person.name != normalized_name:
+                person.name = normalized_name
                 db.session.flush()
             
             credit = Credit(
@@ -816,11 +819,49 @@ def upload_person_photo(id):
         db.session.rollback()
         return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
+@app.route("/admin/merge-duplicate-persons")
+def merge_duplicate_persons():
+    try:
+        from sqlalchemy import func
+        
+        all_persons = Person.query.all()
+        name_groups = {}
+        
+        for person in all_persons:
+            normalized = normalize_name(person.name)
+            if normalized not in name_groups:
+                name_groups[normalized] = []
+            name_groups[normalized].append(person)
+        
+        merged_count = 0
+        for normalized_name, persons in name_groups.items():
+            if len(persons) > 1:
+                primary = persons[0]
+                primary.name = normalized_name
+                
+                for duplicate in persons[1:]:
+                    Credit.query.filter_by(person_id=duplicate.id).update({'person_id': primary.id})
+                    db.session.delete(duplicate)
+                    merged_count += 1
+        
+        db.session.commit()
+        return jsonify({"success": True, "message": f"Merged {merged_count} duplicate persons"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/public/actor/<int:id>")
 def public_actor(id):
     person = db.session.get(Person, id)
     if not person:
         return "Actor not found", 404
+    
+    normalized_name = normalize_name(person.name)
+    if person.name != normalized_name:
+        person.name = normalized_name
+        db.session.commit()
+    
+    duplicate_person_ids = [p.id for p in Person.query.filter(Person.name.ilike(normalized_name)).all()]
     
     credits_query = db.session.query(Credit, Production, Show, Theater).join(
         Production, Credit.production_id == Production.id
@@ -829,7 +870,7 @@ def public_actor(id):
     ).join(
         Theater, Production.theater_id == Theater.id
     ).filter(
-        Credit.person_id == id
+        Credit.person_id.in_(duplicate_person_ids)
     ).order_by(Production.year.desc(), Show.title)
     
     all_credits = credits_query.all()
@@ -981,8 +1022,20 @@ def public_search():
             person_ids = [person_id for person_id, in person_ids_query.distinct().all()]
             persons = Person.query.filter(Person.id.in_(person_ids)).all()
             
+            person_credits_map = {}
             for person in persons:
-                credits_query = Credit.query.filter_by(person_id=person.id)
+                normalized_name = normalize_name(person.name)
+                if normalized_name not in person_credits_map:
+                    person_credits_map[normalized_name] = {
+                        'person': person,
+                        'ids': set([person.id])
+                    }
+                else:
+                    person_credits_map[normalized_name]['ids'].add(person.id)
+            
+            for normalized_name, data in person_credits_map.items():
+                all_person_ids = list(data['ids'])
+                credits_query = Credit.query.filter(Credit.person_id.in_(all_person_ids))
                 if is_category_filter:
                     credits_query = credits_query.filter(Credit.category.ilike(filter_type))
 
@@ -995,8 +1048,8 @@ def public_search():
 
                 if filtered_credits_count > 0:
                     results['actors'].append({
-                        'id': person.id,
-                        'name': person.name,
+                        'id': data['person'].id,
+                        'name': normalized_name,
                         'credits_count': filtered_credits_count
                     })
         
@@ -1080,10 +1133,13 @@ def edit_understudies(production_id):
 
         for name in understudies:
             normalized_name = normalize_name(name)
-            person = Person.query.filter_by(name=normalized_name).first()
+            person = Person.query.filter(Person.name.ilike(normalized_name)).first()
             if not person:
                 person = Person(name=normalized_name, disciplines="Understudies")
                 db.session.add(person)
+                db.session.flush()
+            elif person.name != normalized_name:
+                person.name = normalized_name
                 db.session.flush()
             
             credit = Credit(
