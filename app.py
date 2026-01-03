@@ -4,15 +4,17 @@ import logging
 import sys
 import traceback
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, url_for
 from models import db, Theater, Show, Production, Person, Credit
 from extraction_service import process_pdf, GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError
 from werkzeug.utils import secure_filename
 from config import Config
+from PIL import Image
 
 app = Flask(__name__)
 app.config.from_object(Config)
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+os.makedirs(os.path.join("static", "profiles"), exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -736,6 +738,67 @@ def download_production(id):
 
     except Exception as e:
         return str(e), 500
+
+@app.route("/upload_person_photo/<int:id>", methods=["POST"])
+def upload_person_photo(id):
+    person = db.session.get(Person, id)
+    if not person:
+        return jsonify({"error": "Person not found"}), 404
+    
+    if "photo" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files["photo"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+    
+    if not file.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+        return jsonify({"error": "Invalid file type. Please upload an image file."}), 400
+    
+    try:
+        profiles_dir = os.path.join("static", "profiles")
+        os.makedirs(profiles_dir, exist_ok=True)
+        
+        img = Image.open(file.stream)
+        
+        target_width = 200
+        target_height = 300
+        target_ratio = target_width / target_height
+        
+        img_width, img_height = img.size
+        img_ratio = img_width / img_height
+        
+        if img_ratio > target_ratio:
+            new_height = target_height
+            new_width = int(new_height * img_ratio)
+            left = (new_width - target_width) // 2
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            img = img.crop((left, 0, left + target_width, target_height))
+        else:
+            new_width = target_width
+            new_height = int(new_width / img_ratio)
+            top = (new_height - target_height) // 2
+            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            img = img.crop((0, top, target_width, top + target_height))
+        
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        filename = f"person_{id}.jpg"
+        filepath = os.path.join(profiles_dir, filename)
+        img.save(filepath, "JPEG", quality=90)
+        
+        photo_path = f"profiles/{filename}"
+        person.photo = photo_path
+        db.session.commit()
+        
+        return jsonify({"success": True, "photo_url": url_for('static', filename=photo_path)})
+    
+    except Exception as e:
+        logger.error(f"Error uploading person photo: {e}")
+        logger.error(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
 @app.route("/public/actor/<int:id>")
 def public_actor(id):
