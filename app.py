@@ -991,6 +991,15 @@ def add_sample_data_route():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/admin/sync-theaters")
+def sync_theaters_route():
+    try:
+        from joomla_sync import sync_theaters_from_joomla
+        synced_count = sync_theaters_from_joomla()
+        return jsonify({"success": True, "message": f"Synced {synced_count} theaters from Joomla database"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/public/search")
 def public_search():
     query = request.args.get('q', '').strip()
