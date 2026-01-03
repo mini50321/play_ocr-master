@@ -877,6 +877,7 @@ def public_actor(id):
     
     credits_by_discipline = {}
     theaters_set = set()
+    unique_roles = set()
     
     for credit, production, show, theater in all_credits:
         discipline = credit.category
@@ -894,6 +895,7 @@ def public_actor(id):
             'production_id': production.id
         })
         
+        unique_roles.add(credit.role)
         theaters_set.add((theater.id, theater.name, theater.latitude, theater.longitude, theater.city, theater.state))
     
     theaters_list = []
@@ -914,13 +916,15 @@ def public_actor(id):
                 pass
     
     total_credits = sum(len(credits) for credits in credits_by_discipline.values())
+    disciplines_count = len(unique_roles)
     
     return render_template("public_actor.html", 
                          person=person, 
                          credits_by_discipline=credits_by_discipline,
                          theaters=theaters_list,
                          theaters_map=theaters_with_coords,
-                         total_credits=total_credits)
+                         total_credits=total_credits,
+                         disciplines_count=disciplines_count)
 
 @app.route("/public/show/<int:id>")
 def public_show(id):
