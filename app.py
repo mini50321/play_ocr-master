@@ -35,6 +35,15 @@ except Exception as e:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+def normalize_name(name):
+    if not name:
+        return name
+    name = name.strip()
+    if not name:
+        return name
+    
+    return name.title()
+
 ALL_CATEGORIES = [
     'Cast',
     'Creative',
@@ -442,6 +451,8 @@ def upload():
                                 is_eq = True
                                 clean_name = item.replace("*", "").strip()
                             
+                            clean_name = normalize_name(clean_name)
+                            
                             all_credits.append({
                                 'cat': cat_name,
                                 'role': cat_name,
@@ -452,6 +463,8 @@ def upload():
                             role = item.get('role', cat_name)
                             actor = item.get('actor', '')
                             is_equity = item.get('is_equity', False)
+                            
+                            actor = normalize_name(actor)
                             
                             split_roles = split_dual_role(role)
                             
@@ -470,6 +483,8 @@ def upload():
                  if "*" in name:
                      is_eq = True
                      clean_name = name.replace("*", "").strip()
+                 
+                 clean_name = normalize_name(clean_name)
                  
                  all_credits.append({
                      'cat': 'Ensemble',
@@ -668,9 +683,10 @@ def save():
             
             if not actor_name: continue
 
-            person = Person.query.filter_by(name=actor_name).first()
+            normalized_name = normalize_name(actor_name)
+            person = Person.query.filter_by(name=normalized_name).first()
             if not person:
-                person = Person(name=actor_name, disciplines=category)
+                person = Person(name=normalized_name, disciplines=category)
                 db.session.add(person)
                 db.session.flush()
             
@@ -1063,9 +1079,10 @@ def edit_understudies(production_id):
         Credit.query.filter_by(production_id=production.id, category="Understudies").delete()
 
         for name in understudies:
-            person = Person.query.filter_by(name=name).first()
+            normalized_name = normalize_name(name)
+            person = Person.query.filter_by(name=normalized_name).first()
             if not person:
-                person = Person(name=name, disciplines="Understudies")
+                person = Person(name=normalized_name, disciplines="Understudies")
                 db.session.add(person)
                 db.session.flush()
             
