@@ -1250,3 +1250,89 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 
 2026-01-03 11:01:29,281 - __main__ - ERROR - ================================================================================
 2026-01-03 11:01:29,281 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:01:29] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 11:19:51,257 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-03 11:19:51,257 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-01-03 11:19:56,845 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:19:56] "GET /public/actor/1 HTTP/1.1" 200 -
+2026-01-03 11:19:56,893 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:19:56] "[36mGET /static/profiles/person_1.jpg HTTP/1.1[0m" 304 -
+2026-01-03 11:19:57,833 - __main__ - ERROR - ================================================================================
+2026-01-03 11:19:57,833 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 11:19:57,833 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 11:19:57,834 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 11:19:57,836 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 11:19:57,837 - __main__ - ERROR - ================================================================================
+2026-01-03 11:19:57,838 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:19:57] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 11:23:20,995 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-03 11:23:20,996 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-01-03 11:23:32,129 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:23:32] "GET /public/actor/1 HTTP/1.1" 200 -
+2026-01-03 11:23:32,177 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:23:32] "[36mGET /static/profiles/person_1.jpg HTTP/1.1[0m" 304 -
+2026-01-03 11:23:33,087 - __main__ - ERROR - ================================================================================
+2026-01-03 11:23:33,087 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 11:23:33,088 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 11:23:33,088 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 11:23:33,090 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 11:23:33,091 - __main__ - ERROR - ================================================================================
+2026-01-03 11:23:33,092 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:23:33] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 11:23:40,347 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:23:40] "POST /upload_person_photo/1 HTTP/1.1" 200 -
+2026-01-03 11:23:46,731 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:23:46] "GET /static/profiles/person_1.jpg?t=1767468220348 HTTP/1.1" 200 -
+2026-01-03 11:23:53,064 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:23:53] "POST /upload_person_photo/1 HTTP/1.1" 200 -
+2026-01-03 11:24:08,810 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:24:08] "GET /static/profiles/person_1.jpg?t=1767468233065 HTTP/1.1" 200 -
+2026-01-03 11:27:30,109 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-03 11:27:30,110 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-01-03 11:27:34,599 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:27:34] "GET /public/actor/1 HTTP/1.1" 200 -
+2026-01-03 11:27:34,651 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:27:34] "GET /static/profiles/person_1.jpg HTTP/1.1" 200 -
+2026-01-03 11:27:34,964 - __main__ - ERROR - ================================================================================
+2026-01-03 11:27:34,965 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 11:27:34,965 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 11:27:34,965 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 11:27:34,968 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 11:27:34,969 - __main__ - ERROR - ================================================================================
+2026-01-03 11:27:34,970 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:27:34] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 11:27:39,430 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:27:39] "POST /upload_person_photo/1 HTTP/1.1" 200 -
+2026-01-03 11:27:39,434 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:27:39] "GET /static/profiles/person_1.jpg?t=1767468459431 HTTP/1.1" 200 -
+2026-01-03 11:27:49,223 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:27:49] "POST /upload_person_photo/1 HTTP/1.1" 200 -
+2026-01-03 11:27:49,242 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 11:27:49] "GET /static/profiles/person_1.jpg?t=1767468469239 HTTP/1.1" 200 -
