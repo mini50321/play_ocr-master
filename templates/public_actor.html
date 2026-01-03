@@ -33,59 +33,44 @@
 </div>
 
 <div class="space-y-6">
-    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-900">Credits</h2>
-        </div>
-        <div class="px-6 py-4">
-            {% for discipline, credits_list in credits_by_discipline.items() %}
-            <div class="mb-8">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">{{ discipline }}</h3>
-                <div class="space-y-4">
-                    {% for credit in credits_list %}
-                    <div class="flex items-start justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2">
-                                <a href="/public/show/{{ credit.show_id }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
-                                    {{ credit.show_title }}
-                                </a>
-                                {% if credit.is_equity %}
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Equity
-                                </span>
-                                {% endif %}
-                            </div>
-                            <p class="text-gray-600 mt-1">
-                                <span class="font-medium break-words">{{ credit.role }}</span>
-                                <span class="mx-2">•</span>
-                                <a href="/public/theater/{{ credit.theater_id }}" class="text-indigo-600 hover:text-indigo-800">
-                                    {{ credit.theater_name }}
-                                </a>
-                                <span class="mx-2">•</span>
-                                <span class="text-gray-500">{{ credit.year }}</span>
-                            </p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white shadow sm:rounded-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Theaters</h2>
+                <h2 class="text-xl font-semibold text-gray-900">Credits</h2>
             </div>
             <div class="px-6 py-4">
-                <div class="space-y-2">
-                    {% for theater in theaters %}
-                    <a href="/public/theater/{{ theater.id }}" class="block text-indigo-600 hover:text-indigo-800 hover:underline">
-                        {{ theater.name }}
-                    </a>
-                    {% endfor %}
+                {% for discipline, credits_list in credits_by_discipline.items() %}
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">{{ discipline }}</h3>
+                    <div class="space-y-4">
+                        {% for credit in credits_list %}
+                        <div class="flex items-start justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <a href="/public/show/{{ credit.show_id }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
+                                        {{ credit.show_title }}
+                                    </a>
+                                    {% if credit.is_equity %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Equity
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-gray-600 mt-1">
+                                    <span class="font-medium break-words">{{ credit.role }}</span>
+                                    <span class="mx-2">•</span>
+                                    <a href="/public/theater/{{ credit.theater_id }}" class="text-indigo-600 hover:text-indigo-800">
+                                        {{ credit.theater_name }}
+                                    </a>
+                                    <span class="mx-2">•</span>
+                                    <span class="text-gray-500">{{ credit.year }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
 
@@ -107,6 +92,23 @@
                         <span class="text-sm text-gray-500">Theaters</span>
                         <p class="text-2xl font-bold text-gray-900">{{ theaters|length }}</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Theaters</h2>
+            </div>
+            <div class="px-6 py-4">
+                <div class="space-y-2">
+                    {% for theater in theaters %}
+                    <a href="/public/theater/{{ theater.id }}" class="block text-indigo-600 hover:text-indigo-800 hover:underline">
+                        {{ theater.name }}
+                    </a>
+                    {% endfor %}
                 </div>
             </div>
         </div>

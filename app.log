@@ -1450,3 +1450,146 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 
 2026-01-03 12:01:17,609 - __main__ - ERROR - ================================================================================
 2026-01-03 12:01:17,610 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:01:17] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 12:47:30,079 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-03 12:47:30,080 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-01-03 12:47:35,154 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:35] "POST /save HTTP/1.1" 200 -
+2026-01-03 12:47:36,688 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:36] "GET /dashboard HTTP/1.1" 200 -
+2026-01-03 12:47:37,645 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:37,646 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 12:47:37,646 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 12:47:37,646 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 12:47:37,651 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 12:47:37,652 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:37,653 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:37] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 12:47:41,140 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:41] "GET /public/show/1 HTTP/1.1" 200 -
+2026-01-03 12:47:41,449 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:41,450 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 12:47:41,450 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 12:47:41,451 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 12:47:41,452 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 12:47:41,453 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:41,454 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:41] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 12:47:42,401 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:42] "GET /public/actor/1 HTTP/1.1" 200 -
+2026-01-03 12:47:42,447 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:42] "[36mGET /static/profiles/person_1.jpg HTTP/1.1[0m" 304 -
+2026-01-03 12:47:43,799 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:43,800 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 12:47:43,800 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 12:47:43,800 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 12:47:43,802 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 12:47:43,803 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:43,803 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:43] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 12:47:46,638 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:46] "GET /public/actor/1 HTTP/1.1" 200 -
+2026-01-03 12:47:46,649 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:46] "[36mGET /static/profiles/person_1.jpg HTTP/1.1[0m" 304 -
+2026-01-03 12:47:46,992 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:46,993 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 12:47:46,993 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 12:47:46,994 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 12:47:46,995 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 12:47:46,997 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:46,998 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:46] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 12:47:54,359 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:54] "GET /public/actor/1 HTTP/1.1" 200 -
+2026-01-03 12:47:54,371 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:54] "[36mGET /static/profiles/person_1.jpg HTTP/1.1[0m" 304 -
+2026-01-03 12:47:54,728 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:54,728 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 12:47:54,729 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 12:47:54,729 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 12:47:54,731 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 12:47:54,734 - __main__ - ERROR - ================================================================================
+2026-01-03 12:47:54,735 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:47:54] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-03 12:51:53,519 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-03 12:51:53,520 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-01-03 12:51:55,823 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:51:55] "GET /public/actor/1 HTTP/1.1" 200 -
+2026-01-03 12:51:55,872 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:51:55] "[36mGET /static/profiles/person_1.jpg HTTP/1.1[0m" 304 -
+2026-01-03 12:51:57,228 - __main__ - ERROR - ================================================================================
+2026-01-03 12:51:57,228 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-03 12:51:57,229 - __main__ - ERROR - Exception type: NotFound
+2026-01-03 12:51:57,229 - __main__ - ERROR - Exception message: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-03 12:51:57,231 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+
+2026-01-03 12:51:57,232 - __main__ - ERROR - ================================================================================
+2026-01-03 12:51:57,233 - werkzeug - INFO - 127.0.0.1 - - [03/Jan/2026 12:51:57] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
