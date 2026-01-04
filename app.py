@@ -11,8 +11,16 @@ from werkzeug.utils import secure_filename
 from config import Config
 from PIL import Image
 
-app = Flask(__name__)
+APPLICATION_ROOT = os.getenv('APPLICATION_ROOT', '/')
+if APPLICATION_ROOT != '/':
+    if not APPLICATION_ROOT.startswith('/'):
+        APPLICATION_ROOT = '/' + APPLICATION_ROOT
+    if not APPLICATION_ROOT.endswith('/'):
+        APPLICATION_ROOT = APPLICATION_ROOT + '/'
+
+app = Flask(__name__, static_url_path=APPLICATION_ROOT.rstrip('/') + '/static')
 app.config.from_object(Config)
+app.config['APPLICATION_ROOT'] = APPLICATION_ROOT
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 os.makedirs(os.path.join("static", "profiles"), exist_ok=True)
 
@@ -850,6 +858,45 @@ def merge_duplicate_persons():
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
 
+def get_discipline_from_credit(category, role):
+    category_map = {
+        'Cast': 'Actor',
+        'Musician': 'Musician',
+        'Crew': 'Crew',
+        'Swings': 'Swings',
+        'Understudies': 'Understudies',
+        'Dance Captain': 'Dance Captain',
+        'Ensemble': 'Ensemble'
+    }
+    
+    if category in category_map:
+        return category_map[category]
+    
+    if category == 'Creative':
+        role_lower = role.lower()
+        if 'directed' in role_lower or 'director' in role_lower:
+            return 'Director'
+        elif 'choreographed' in role_lower or 'choreographer' in role_lower:
+            return 'Choreographer'
+        elif 'written' in role_lower or 'writer' in role_lower or 'book' in role_lower:
+            return 'Writer'
+        elif 'produced' in role_lower or 'producer' in role_lower:
+            return 'Producer'
+        elif 'lighting' in role_lower:
+            return 'Lighting Designer'
+        elif 'sound' in role_lower:
+            return 'Sound Designer'
+        elif 'costume' in role_lower:
+            return 'Costume Designer'
+        elif 'set' in role_lower or 'scenic' in role_lower:
+            return 'Set Designer'
+        elif 'designed' in role_lower or 'designer' in role_lower:
+            return 'Designer'
+        else:
+            return 'Creative'
+    
+    return category
+
 @app.route("/public/actor/<int:id>")
 def public_actor(id):
     person = db.session.get(Person, id)
@@ -877,7 +924,7 @@ def public_actor(id):
     
     credits_by_discipline = {}
     theaters_set = set()
-    unique_roles = set()
+    disciplines_set = set()
     
     for credit, production, show, theater in all_credits:
         discipline = credit.category
@@ -895,7 +942,9 @@ def public_actor(id):
             'production_id': production.id
         })
         
-        unique_roles.add(credit.role)
+        discipline_name = get_discipline_from_credit(credit.category, credit.role)
+        disciplines_set.add(discipline_name)
+        
         theaters_set.add((theater.id, theater.name, theater.latitude, theater.longitude, theater.city, theater.state))
     
     theaters_list = []
@@ -916,7 +965,8 @@ def public_actor(id):
                 pass
     
     total_credits = sum(len(credits) for credits in credits_by_discipline.values())
-    disciplines_count = len(unique_roles)
+    disciplines_list = sorted(disciplines_set)
+    disciplines_count = len(disciplines_list)
     
     return render_template("public_actor.html", 
                          person=person, 
@@ -924,7 +974,8 @@ def public_actor(id):
                          theaters=theaters_list,
                          theaters_map=theaters_with_coords,
                          total_credits=total_credits,
-                         disciplines_count=disciplines_count)
+                         disciplines_count=disciplines_count,
+                         disciplines_list=disciplines_list)
 
 @app.route("/public/show/<int:id>")
 def public_show(id):
