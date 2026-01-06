@@ -47,7 +47,7 @@
                         <div class="flex items-start justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
-                                    <a href="/public/show/{{ credit.show_id }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
+                                    <a href="{{ url_for('public_show', id=credit.show_id) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
                                         {{ credit.show_title }}
                                     </a>
                                     {% if credit.is_equity %}
@@ -59,7 +59,7 @@
                                 <p class="text-gray-600 mt-1">
                                     <span class="font-medium break-words">{{ credit.role }}</span>
                                     <span class="mx-2">•</span>
-                                    <a href="/public/theater/{{ credit.theater_id }}" class="text-indigo-600 hover:text-indigo-800">
+                                    <a href="{{ url_for('public_theater', id=credit.theater_id) }}" class="text-indigo-600 hover:text-indigo-800">
                                         {{ credit.theater_name }}
                                     </a>
                                     <span class="mx-2">•</span>
@@ -111,7 +111,7 @@
             <div class="px-6 py-4">
                 <div class="space-y-2">
                     {% for theater in theaters %}
-                    <a href="/public/theater/{{ theater.id }}" class="block text-indigo-600 hover:text-indigo-800 hover:underline">
+                    <a href="{{ url_for('public_theater', id=theater.id) }}" class="block text-indigo-600 hover:text-indigo-800 hover:underline">
                         {{ theater.name }}
                     </a>
                     {% endfor %}
@@ -149,12 +149,13 @@
         
         const bounds = [];
         
+        const theaterUrlBase = '{{ url_for("public_theater", id=0) }}'.replace('/0', '');
         theaters.forEach(theater => {
             if (theater.lat && theater.lng) {
                 const marker = L.marker([theater.lat, theater.lng]).addTo(map);
                 const popupContent = `
                     <div style="padding: 8px;">
-                        <strong><a href="/public/theater/${theater.id}" style="color: #4f46e5; text-decoration: none;">${theater.name}</a></strong>
+                        <strong><a href="${theaterUrlBase}/${theater.id}" style="color: #4f46e5; text-decoration: none;">${theater.name}</a></strong>
                         ${theater.city ? `<br><span style="color: #6b7280;">${theater.city}${theater.state ? ', ' + theater.state : ''}</span>` : ''}
                     </div>
                 `;
@@ -213,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            fetch(`/upload_person_photo/{{ person.id }}`, {
+            fetch(`{{ url_for('upload_person_photo', id=person.id) }}`, {
                 method: 'POST',
                 body: formData
             })

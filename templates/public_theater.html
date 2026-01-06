@@ -29,7 +29,7 @@
     {% for show_id, show_data in shows_data.items() %}
     <div class="bg-white shadow sm:rounded-lg overflow-hidden">
         <div class="px-6 py-4">
-            <a href="/public/show/{{ show_data.show.id }}" class="block hover:bg-gray-50 rounded-lg p-4 transition">
+            <a href="{{ url_for('public_show', id=show_data.show.id) }}" class="block hover:bg-gray-50 rounded-lg p-4 transition">
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-xl font-semibold text-gray-900">

@@ -14,7 +14,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900">
-                        <a href="/public/theater/{{ prod_data.theater.id }}" class="text-indigo-600 hover:text-indigo-800">
+                        <a href="{{ url_for('public_theater', id=prod_data.theater.id) }}" class="text-indigo-600 hover:text-indigo-800">
                             {{ prod_data.theater.name }}
                         </a>
                     </h2>
@@ -66,7 +66,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {% for credit in credits_list %}
                         <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                            <a href="/public/actor/{{ credit.person_id }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                            <a href="{{ url_for('public_actor', id=credit.person_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
                                 {{ credit.person_name }}
                             </a>
                             {% if credit.is_equity %}
@@ -100,7 +100,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {% for credit in credits_list %}
                     <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                        <a href="/public/actor/{{ credit.person_id }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                        <a href="{{ url_for('public_actor', id=credit.person_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
                             {{ credit.person_name }}
                         </a>
                         {% if credit.is_equity %}
@@ -157,7 +157,8 @@
         const understudyNames = textarea.value.split(',').map(name => name.trim()).filter(name => name.length > 0);
 
         try {
-            const response = await fetch(`/edit_understudies/${productionId}`, {
+            const editUrlBase = '{{ url_for("edit_understudies", production_id=0) }}'.replace('/0', '');
+            const response = await fetch(`${editUrlBase}/${productionId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

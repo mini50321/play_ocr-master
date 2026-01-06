@@ -7,7 +7,7 @@
             <h3 class="text-lg leading-6 font-medium text-gray-900">Saved Productions</h3>
             <p class="mt-1 max-w-2xl text-sm text-gray-500">Manage your playbill database.</p>
         </div>
-        <a href="/"
+        <a href="{{ url_for('index') }}"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
             + Upload New
         </a>
@@ -49,12 +49,12 @@
                         {{ prod.id }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <a href="/public/show/{{ prod.show.id }}" class="text-indigo-600 hover:text-indigo-900 hover:underline">
+                        <a href="{{ url_for('public_show', id=prod.show.id) }}" class="text-indigo-600 hover:text-indigo-900 hover:underline">
                             {{ prod.show.title }}
                         </a>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <a href="/public/theater/{{ prod.theater.id }}" class="text-indigo-600 hover:text-indigo-900 hover:underline">
+                        <a href="{{ url_for('public_theater', id=prod.theater.id) }}" class="text-indigo-600 hover:text-indigo-900 hover:underline">
                             {{ prod.theater.name }}
                         </a>
                     </td>
@@ -62,9 +62,9 @@
                         {{ prod.year }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <a href="/public/show/{{ prod.show.id }}" class="text-blue-600 hover:text-blue-900" title="View Public Page">View</a>
-                        <a href="/edit/{{ prod.id }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
-                        <a href="/download/{{ prod.id }}" class="text-green-600 hover:text-green-900">Download</a>
+                        <a href="{{ url_for('public_show', id=prod.show.id) }}" class="text-blue-600 hover:text-blue-900" title="View Public Page">View</a>
+                        <a href="{{ url_for('edit', id=prod.id) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                        <a href="{{ url_for('download_production', id=prod.id) }}" class="text-green-600 hover:text-green-900">Download</a>
                         <button onclick="deleteProduction({{ prod.id }})"
                             class="text-red-600 hover:text-red-900 ml-2">Delete</button>
                     </td>
@@ -122,7 +122,8 @@
         if (!deleteProductionId) return;
 
         try {
-            const response = await fetch(`/delete/${deleteProductionId}`, { method: 'POST' });
+            const deleteUrlBase = '{{ url_for("delete_production", id=0) }}'.replace('/0', '');
+            const response = await fetch(`${deleteUrlBase}/${deleteProductionId}`, { method: 'POST' });
             const result = await response.json();
 
             if (response.ok) {

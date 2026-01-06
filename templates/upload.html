@@ -89,9 +89,9 @@
             
             if (response.ok) {
                 const html = await response.text();
-                document.open();
-                document.write(html);
-                document.close();
+                const newDoc = document.open('text/html', 'replace');
+                newDoc.write(html);
+                newDoc.close();
             } else {
                 let errorData;
                 try {

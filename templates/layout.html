@@ -13,11 +13,14 @@
         }
     </style>
     <script>
-        const APP_URLS = {
-            dashboard: '{{ url_for("dashboard") }}',
-            search: '{{ url_for("public_search") }}',
-            index: '{{ url_for("index") }}'
-        };
+        if (!window.APP_URLS) {
+            window.APP_URLS = {
+                dashboard: '{{ url_for("dashboard") }}',
+                search: '{{ url_for("public_search") }}',
+                index: '{{ url_for("index") }}'
+            };
+        }
+        var APP_URLS = window.APP_URLS;
         
         function showNotificationModal(title, message, type = 'info', onConfirm = null, confirmText = 'OK', cancelText = null) {
             const modal = document.getElementById('notification-modal');

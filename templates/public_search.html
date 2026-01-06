@@ -5,7 +5,7 @@
     <div class="px-6 py-5">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Search</h1>
         
-        <form method="GET" action="/public/search" class="mb-6" id="search-form">
+        <form method="GET" action="{{ url_for('public_search') }}" class="mb-6" id="search-form">
             <div class="flex gap-4">
                 <input type="text" 
                        name="q" 
@@ -57,7 +57,7 @@
             <div class="space-y-3">
                 {% for actor in results.actors %}
                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <a href="/public/actor/{{ actor.id }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
+                    <a href="{{ url_for('public_actor', id=actor.id) }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
                         {{ actor.name }}
                     </a>
                     <span class="text-gray-500 text-sm">{{ actor.credits_count }} credits</span>
@@ -77,7 +77,7 @@
             <div class="space-y-3">
                 {% for show in results.shows %}
                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <a href="/public/show/{{ show.id }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
+                    <a href="{{ url_for('public_show', id=show.id) }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
                         {{ show.title }}
                     </a>
                     <span class="text-gray-500 text-sm">{{ show.productions_count }} production(s)</span>
@@ -97,7 +97,7 @@
             <div class="space-y-3">
                 {% for theater in results.theaters %}
                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <a href="/public/theater/{{ theater.id }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
+                    <a href="{{ url_for('public_theater', id=theater.id) }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
                         {{ theater.name }}
                     </a>
                     <span class="text-gray-500 text-sm">{{ theater.productions_count }} production(s)</span>
@@ -144,7 +144,7 @@
             timeout = setTimeout(async () => {
                 if (query.length >= 2) {
                     try {
-                        const response = await fetch(`/autocomplete/search?q=${encodeURIComponent(query)}`);
+                        const response = await fetch(`{{ url_for('autocomplete_search') }}?q=${encodeURIComponent(query)}`);
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
                         }
