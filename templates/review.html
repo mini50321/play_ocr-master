@@ -321,7 +321,7 @@
     function hideNotificationModal(noRedirect = false) {
         document.getElementById('notificationModal').classList.add('hidden');
         if (!noRedirect) {
-            window.location.href = '/dashboard';
+            window.location.href = '{{ url_for("dashboard") }}';
         }
     }
 
@@ -370,7 +370,7 @@
         if (response.ok) {
             showNotificationModal('Success', 'Data saved successfully!', 'success', null, 'OK', null);
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                window.location.href = '{{ url_for("dashboard") }}';
             }, 1500);
         } else {
             if (response.status === 409) {

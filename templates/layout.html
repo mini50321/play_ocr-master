@@ -13,6 +13,12 @@
         }
     </style>
     <script>
+        const APP_URLS = {
+            dashboard: '{{ url_for("dashboard") }}',
+            search: '{{ url_for("public_search") }}',
+            index: '{{ url_for("index") }}'
+        };
+        
         function showNotificationModal(title, message, type = 'info', onConfirm = null, confirmText = 'OK', cancelText = null) {
             const modal = document.getElementById('notification-modal');
             document.getElementById('modal-title').textContent = title;
@@ -68,7 +74,7 @@
         function hideNotificationModal(noRedirect = false) {
             document.getElementById('notification-modal').classList.add('hidden');
             if (!noRedirect) {
-                window.location.href = '/dashboard';
+                window.location.href = APP_URLS.dashboard;
             }
         }
     </script>
@@ -80,10 +86,10 @@
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="text-xl font-bold text-indigo-600">Playbill OCR</a>
-                        <a href="/dashboard"
+                        <a href="{{ url_for('index') }}" class="text-xl font-bold text-indigo-600">Playbill OCR</a>
+                        <a href="{{ url_for('dashboard') }}"
                             class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Dashboard</a>
-                        <a href="/public/search"
+                        <a href="{{ url_for('public_search') }}"
                             class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Search</a>
                     </div>
                 </div>

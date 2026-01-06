@@ -175,7 +175,7 @@
 
         const clearAllBtn = document.getElementById('clear-all-btn');
         clearAllBtn.addEventListener('click', () => {
-            window.location.href = '/public/search';
+            window.location.href = '{{ url_for("public_search") }}';
         });
     });
 </script>
