@@ -72,11 +72,20 @@
         submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
         submitBtn.disabled = true;
         
+        const uploadUrl = '{{ url_for("upload") }}';
+        const timeout = 200000;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
         try {
-            const response = await fetch('/upload', {
+            const response = await fetch(uploadUrl, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
             
             if (response.ok) {
                 const html = await response.text();
@@ -84,18 +93,32 @@
                 document.write(html);
                 document.close();
             } else {
-                const errorData = await response.json().catch(() => ({ error: 'Unknown error', message: 'An error occurred' }));
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (e) {
+                    errorData = { error: 'Unknown error', message: `Server returned status ${response.status}` };
+                }
                 loadingDiv.classList.add('hidden');
                 submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 submitBtn.disabled = false;
                 alert(errorData.message || errorData.error || 'Upload failed. Please try again.');
             }
         } catch (error) {
+            clearTimeout(timeoutId);
             loadingDiv.classList.add('hidden');
             submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             submitBtn.disabled = false;
             console.error('Upload error:', error);
-            alert('Network error. Please check your connection and try again.');
+            
+            let errorMessage = 'Network error. Please check your connection and try again.';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Upload timeout. The file may be too large or the server is taking too long to process. Please try again.';
+            } else if (error.message && error.message.includes('Failed to fetch')) {
+                errorMessage = 'Connection failed. Please check your internet connection and try again.';
+            }
+            
+            alert(errorMessage);
         }
     }
 </script>

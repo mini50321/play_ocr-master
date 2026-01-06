@@ -21,6 +21,7 @@ if APPLICATION_ROOT != '/':
 app = Flask(__name__, static_url_path=APPLICATION_ROOT.rstrip('/') + '/static')
 app.config.from_object(Config)
 app.config['APPLICATION_ROOT'] = APPLICATION_ROOT
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 os.makedirs(os.path.join("static", "profiles"), exist_ok=True)
 
