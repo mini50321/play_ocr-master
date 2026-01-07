@@ -843,8 +843,8 @@ def save():
         if not theater.joomla_id:
             return jsonify({
                 "error": "Theater not linked to Joomla",
-                "message": f"Theater '{theater.name}' exists but is not linked to Joomla database. Please sync theaters or link manually.",
-                "suggested_action": "link_theater"
+                "message": f"Theater '{theater.name}' exists but is not linked to Joomla database. Please sync theaters from the admin dashboard.",
+                "suggested_action": "sync_theaters"
             }), 400
 
         if production_id:
@@ -1332,48 +1332,6 @@ def add_sample_data_route():
         return jsonify({"success": True, "message": "Sample data added successfully!"}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route("/admin/theaters/unmatched")
-@login_required
-def unmatched_theaters():
-    unmatched = Theater.query.filter(Theater.joomla_id.is_(None)).all()
-    return render_template("unmatched_theaters.html", theaters=unmatched)
-
-@app.route("/admin/theaters/link", methods=["POST"])
-@login_required
-def link_theater():
-    data = request.json
-    theater_id = data.get("theater_id")
-    joomla_id = data.get("joomla_id")
-    
-    if not theater_id or not joomla_id:
-        return jsonify({"error": "Missing theater_id or joomla_id"}), 400
-    
-    theater = db.session.get(Theater, theater_id)
-    if not theater:
-        return jsonify({"error": "Theater not found"}), 404
-    
-    try:
-        import pymysql
-        conn = pymysql.connect(
-            host=Config.JOOMLA_DB_HOST,
-            user=Config.JOOMLA_DB_USER,
-            password=Config.JOOMLA_DB_PASSWORD,
-            database=Config.JOOMLA_DB_NAME,
-            charset='utf8mb4'
-        )
-        cursor = conn.cursor()
-        cursor.execute(f"SELECT id FROM {Config.JOOMLA_THEATER_TABLE} WHERE id = %s", (joomla_id,))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({"error": "Joomla ID not found"}), 404
-        conn.close()
-    except Exception as e:
-        return jsonify({"error": f"Could not verify Joomla ID: {str(e)}"}), 500
-    
-    theater.joomla_id = int(joomla_id)
-    db.session.commit()
-    return jsonify({"success": True, "message": "Theater linked successfully"})
 
 @app.route("/admin/sync-theaters")
 @login_required
