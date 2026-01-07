@@ -4,11 +4,12 @@ import logging
 import sys
 import traceback
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify
-from flask import url_for as flask_url_for
+from flask import Flask, render_template, request, jsonify, redirect, session, url_for as flask_url_for
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 from models import db, Theater, Show, Production, Person, Credit
 from extraction_service import process_pdf, GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError
-from werkzeug.utils import secure_filename
 from config import Config
 from PIL import Image
 
@@ -25,6 +26,19 @@ app.config['APPLICATION_ROOT'] = APPLICATION_ROOT
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 os.makedirs(os.path.join("static", "profiles"), exist_ok=True)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access the admin area.'
+
+class AdminUser(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+@login_manager.user_loader
+def load_user(user_id):
+    return AdminUser(user_id)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -194,9 +208,32 @@ def inject_url_for():
             if not url.startswith(root):
                 url = root + url
         return url
-    return dict(url_for=url_for)
+    return dict(url_for=url_for, current_user=current_user)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        
+        if username == Config.ADMIN_USERNAME and password == Config.ADMIN_PASSWORD:
+            user = AdminUser(username)
+            login_user(user)
+            next_page = request.args.get("next")
+            return redirect(next_page or flask_url_for("dashboard"))
+        else:
+            return render_template("login.html", error="Invalid username or password")
+    
+    return render_template("login.html")
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(flask_url_for("public_search"))
 
 @app.route("/")
+@login_required
 def index():
     return render_template("upload.html")
 
@@ -231,6 +268,7 @@ def ensure_json_response(func):
     return wrapper
 
 @app.route("/upload", methods=["POST"])
+@login_required
 @ensure_json_response
 def upload():
     path = None
@@ -579,11 +617,13 @@ def upload():
         logger.info("=" * 80)
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
     productions = Production.query.order_by(Production.id.desc()).all()
     return render_template("dashboard.html", productions=productions)
 
 @app.route("/edit/<int:id>")
+@login_required
 def edit(id):
     production = db.session.get(Production, id)
     if not production:
@@ -613,6 +653,7 @@ def edit(id):
     return render_template("review.html", data=data, filename=f"Edit: {production.show.title}")
 
 @app.route("/save", methods=["POST"])
+@login_required
 def save():
     data = request.json
     try:
@@ -731,6 +772,7 @@ def save():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/delete/<int:id>", methods=["POST"])
+@login_required
 def delete_production(id):
     try:
         production = db.session.get(Production, id)
@@ -745,6 +787,7 @@ def delete_production(id):
         return jsonify({"error": str(e)}), 500
 
 @app.route("/download/<int:id>")
+@login_required
 def download_production(id):
     try:
         production = db.session.get(Production, id)
@@ -780,6 +823,7 @@ def download_production(id):
         return str(e), 500
 
 @app.route("/upload_person_photo/<int:id>", methods=["POST"])
+@login_required
 def upload_person_photo(id):
     person = db.session.get(Person, id)
     if not person:
@@ -846,6 +890,7 @@ def upload_person_photo(id):
         return jsonify({"error": f"Failed to process image: {str(e)}"}), 500
 
 @app.route("/admin/merge-duplicate-persons")
+@login_required
 def merge_duplicate_persons():
     try:
         from sqlalchemy import func
@@ -1052,6 +1097,7 @@ def public_theater(id):
                          shows_data=shows_data)
 
 @app.route("/admin/add-sample-data")
+@login_required
 def add_sample_data_route():
     try:
         from add_sample_data import add_sample_data
@@ -1061,6 +1107,7 @@ def add_sample_data_route():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/admin/sync-theaters")
+@login_required
 def sync_theaters_route():
     try:
         from joomla_sync import sync_theaters_from_joomla
@@ -1202,6 +1249,7 @@ def autocomplete_search():
     return jsonify(suggestions[:10])
 
 @app.route("/edit_understudies/<int:production_id>", methods=["POST"])
+@login_required
 def edit_understudies(production_id):
     data = request.json
     understudies = data.get("understudies", [])

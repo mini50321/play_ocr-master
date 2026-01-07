@@ -31,3 +31,6 @@ class Config:
     GEMINI_API_ENABLED = os.getenv('GEMINI_API_ENABLED', 'true').lower() == 'true'
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', None)
     GEMINI_CLIENT_API_KEY = os.getenv('GEMINI_CLIENT_API_KEY', None)
+    
+    ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
+    ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin')

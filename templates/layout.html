@@ -89,12 +89,15 @@
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="{{ url_for('index') }}" class="text-xl font-bold text-indigo-600">Playbill OCR</a>
+                        <a href="{{ url_for('index') }}" class="text-xl font-bold text-indigo-600">Playbill OCR Studio</a>
                         <a href="{{ url_for('dashboard') }}"
                             class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Dashboard</a>
                         <a href="{{ url_for('public_search') }}"
                             class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Search</a>
                     </div>
+                </div>
+                <div class="flex items-center">
+                    <a href="{{ url_for('logout') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">Logout</a>
                 </div>
             </div>
         </div>
