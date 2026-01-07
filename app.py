@@ -4,7 +4,8 @@ import logging
 import sys
 import traceback
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, url_for
+from flask import Flask, render_template, request, jsonify
+from flask import url_for as flask_url_for
 from models import db, Theater, Show, Production, Person, Credit
 from extraction_service import process_pdf, GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError
 from werkzeug.utils import secure_filename
@@ -183,6 +184,17 @@ def handle_exception(e):
         return jsonify(error_response), 500
     else:
         return jsonify(error_response), 500
+
+@app.context_processor
+def inject_url_for():
+    def url_for(endpoint, **values):
+        url = flask_url_for(endpoint, **values)
+        if APPLICATION_ROOT != '/':
+            root = APPLICATION_ROOT.rstrip('/')
+            if not url.startswith(root):
+                url = root + url
+        return url
+    return dict(url_for=url_for)
 
 @app.route("/")
 def index():
@@ -820,7 +832,12 @@ def upload_person_photo(id):
         person.photo = photo_path
         db.session.commit()
         
-        return jsonify({"success": True, "photo_url": url_for('static', filename=photo_path)})
+        photo_url = flask_url_for('static', filename=photo_path)
+        if APPLICATION_ROOT != '/':
+            root = APPLICATION_ROOT.rstrip('/')
+            if not photo_url.startswith(root):
+                photo_url = root + photo_url
+        return jsonify({"success": True, "photo_url": photo_url})
     
     except Exception as e:
         logger.error(f"Error uploading person photo: {e}")

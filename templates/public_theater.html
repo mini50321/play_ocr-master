@@ -26,29 +26,77 @@
 </div>
 
 <div class="space-y-6">
-    {% for show_id, show_data in shows_data.items() %}
+    {% if theater.latitude and theater.longitude %}
     <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Location</h2>
+        </div>
         <div class="px-6 py-4">
-            <a href="{{ url_for('public_show', id=show_data.show.id) }}" class="block hover:bg-gray-50 rounded-lg p-4 transition">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-xl font-semibold text-gray-900">
-                            {{ show_data.show.title }}
-                        </h2>
-                        <div class="mt-2 space-y-1">
-                            {% for production in show_data.productions %}
-                            <p class="text-gray-600">{{ production.year }}</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </div>
-            </a>
+            <div id="theater-map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
         </div>
     </div>
-    {% endfor %}
+    {% endif %}
+
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900">Productions</h2>
+        </div>
+        <div class="px-6 py-4">
+            {% for show_id, show_data in shows_data.items() %}
+            <div class="mb-4 last:mb-0">
+                <a href="{{ url_for('public_show', id=show_data.show.id) }}" class="block hover:bg-gray-50 rounded-lg p-4 transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                {{ show_data.show.title }}
+                            </h3>
+                            <div class="mt-2 space-y-1">
+                                {% for production in show_data.productions %}
+                                <p class="text-gray-600">{{ production.year }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
+
+{% if theater.latitude and theater.longitude %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const theaterLat = {{ theater.latitude }};
+    const theaterLng = {{ theater.longitude }};
+    const theaterName = {{ theater.name | tojson }};
+    const theaterAddress = {{ (theater.address or '') | tojson }};
+    const theaterCity = {{ (theater.city or '') | tojson }};
+    const theaterState = {{ (theater.state or '') | tojson }};
+    
+    if (theaterLat && theaterLng) {
+        const map = L.map('theater-map').setView([parseFloat(theaterLat), parseFloat(theaterLng)], 15);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        const marker = L.marker([parseFloat(theaterLat), parseFloat(theaterLng)]).addTo(map);
+        let popupContent = `<div style="padding: 8px;"><strong>${theaterName}</strong>`;
+        if (theaterAddress) {
+            popupContent += `<br><span style="color: #6b7280;">${theaterAddress}</span>`;
+        }
+        if (theaterCity || theaterState) {
+            popupContent += `<br><span style="color: #6b7280;">${theaterCity}${theaterCity && theaterState ? ', ' : ''}${theaterState}</span>`;
+        }
+        popupContent += '</div>';
+        marker.bindPopup(popupContent);
+    }
+</script>
+{% endif %}
 {% endblock %}
 
