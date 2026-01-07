@@ -8,7 +8,7 @@ from flask import Flask, render_template, request, jsonify, redirect, session, u
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
-from models import db, Theater, Show, Production, Person, Credit, AdminSettings
+from models import db, Theater, Show, Production, Person, Credit, AdminSettings, User
 from extraction_service import process_pdf, GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError
 from config import Config
 from PIL import Image
@@ -273,6 +273,55 @@ def inject_url_for():
         return url
     return dict(url_for=url_for, current_user=current_user)
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+        
+        if not username or not password:
+            return render_template("login.html", register_error="Username and password are required", show_register=True)
+        
+        if password != confirm_password:
+            return render_template("login.html", register_error="Passwords do not match", show_register=True)
+        
+        if len(password) < 6:
+            return render_template("login.html", register_error="Password must be at least 6 characters", show_register=True)
+        
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return render_template("login.html", register_error="Username already exists", show_register=True)
+        
+        try:
+            password_hash = generate_password_hash(password)
+            new_user = User(
+                username=username,
+                password_hash=password_hash,
+                created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            user = AdminUser(username)
+            login_user(user, remember=True)
+            session.permanent = True
+            logger.info(f"User {username} registered and logged in successfully")
+            try:
+                dashboard_url = flask_url_for("dashboard")
+                logger.info(f"Redirecting to dashboard: {dashboard_url}")
+                return redirect(dashboard_url)
+            except Exception as redirect_error:
+                logger.error(f"Redirect error: {redirect_error}")
+                logger.error(traceback.format_exc())
+                return redirect(APPLICATION_ROOT.rstrip('/') + '/dashboard')
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error creating user: {e}")
+            logger.error(traceback.format_exc())
+            return render_template("login.html", register_error=f"Error creating user: {str(e)}", show_register=True)
+    
+    return render_template("login.html", show_register=True)
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -282,12 +331,20 @@ def login():
         authenticated = False
         
         try:
-            settings = AdminSettings.query.first()
-            if settings and username == settings.username:
-                if check_password_hash(settings.password_hash, password):
-                    authenticated = True
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password_hash, password):
+                authenticated = True
         except:
             pass
+        
+        if not authenticated:
+            try:
+                settings = AdminSettings.query.first()
+                if settings and username == settings.username:
+                    if check_password_hash(settings.password_hash, password):
+                        authenticated = True
+            except:
+                pass
         
         if not authenticated:
             if username == Config.ADMIN_USERNAME and password == Config.ADMIN_PASSWORD:

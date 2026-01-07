@@ -55,6 +55,12 @@ class Credit(db.Model):
     production: Mapped["Production"] = relationship(back_populates="credits")
     person: Mapped["Person"] = relationship()
 
+class User(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
 class AdminSettings(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, default='admin')
