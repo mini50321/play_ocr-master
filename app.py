@@ -4,7 +4,7 @@ import logging
 import sys
 import traceback
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, redirect, session, url_for as flask_url_for
+from flask import Flask, render_template, request, jsonify, redirect, session, url_for as flask_url_for, make_response
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -136,6 +136,10 @@ init_db()
 
 @app.before_request
 def log_request_info():
+    if request.path == '/favicon.ico' or request.path.endswith('/favicon.ico'):
+        from flask import Response
+        return Response("", status=204)
+    
     if request.path == '/upload':
         logger.info(f"Request: {request.method} {request.path}")
         logger.info(f"Content-Type: {request.content_type}")
@@ -154,6 +158,10 @@ def log_response_info(response):
 
 @app.errorhandler(500)
 def internal_error(error):
+    if request.path == '/favicon.ico' or request.path.endswith('/favicon.ico'):
+        from flask import Response
+        return Response("", status=204)
+    
     logger.error("=" * 80)
     logger.error("FLASK 500 ERROR HANDLER TRIGGERED")
     logger.error(f"Error: {error}")
@@ -173,6 +181,10 @@ def internal_error(error):
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    if request.path == '/favicon.ico' or request.path.endswith('/favicon.ico'):
+        from flask import Response
+        return Response("", status=204)
+    
     logger.error("=" * 80)
     logger.error("UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER")
     logger.error(f"Exception type: {type(e).__name__}")
@@ -250,6 +262,10 @@ def logout():
     if next_page:
         return redirect(flask_url_for("login") + f"?next={next_page}")
     return redirect(flask_url_for("public_search"))
+
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
 
 @app.route("/")
 @login_required
