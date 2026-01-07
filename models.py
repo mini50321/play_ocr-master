@@ -54,3 +54,21 @@ class Credit(db.Model):
 
     production: Mapped["Production"] = relationship(back_populates="credits")
     person: Mapped["Person"] = relationship()
+
+class AdminSettings(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True, default='admin')
+    password_hash: Mapped[str] = mapped_column(String(255))
+    
+    @staticmethod
+    def get_or_create():
+        settings = AdminSettings.query.first()
+        if not settings:
+            from werkzeug.security import generate_password_hash
+            settings = AdminSettings(
+                username='admin',
+                password_hash=generate_password_hash('admin')
+            )
+            db.session.add(settings)
+            db.session.commit()
+        return settings

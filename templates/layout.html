@@ -90,15 +90,24 @@
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
                         <a href="{{ url_for('index') }}" class="text-xl font-bold text-indigo-600">Playbill OCR Studio</a>
+                        {% if current_user.is_authenticated %}
                         <a href="{{ url_for('dashboard') }}"
                             class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Dashboard</a>
                         <a href="{{ url_for('public_search') }}"
                             class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Search</a>
+                        <a href="{{ url_for('settings') }}"
+                            class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Settings</a>
+                        {% else %}
+                        <a href="{{ url_for('public_search') }}"
+                            class="ml-8 text-sm font-medium text-gray-700 hover:text-gray-900">Search</a>
+                        {% endif %}
                     </div>
                 </div>
+                {% if current_user.is_authenticated %}
                 <div class="flex items-center">
                     <a href="{{ url_for('logout') }}" class="text-sm font-medium text-gray-700 hover:text-gray-900">Logout</a>
                 </div>
+                {% endif %}
             </div>
         </div>
     </nav>

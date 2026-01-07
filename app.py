@@ -8,7 +8,7 @@ from flask import Flask, render_template, request, jsonify, redirect, session, u
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
-from models import db, Theater, Show, Production, Person, Credit
+from models import db, Theater, Show, Production, Person, Credit, AdminSettings
 from extraction_service import process_pdf, GeminiQuotaExceededError, GeminiAPIError, GeminiAPIDisabledError
 from config import Config
 from PIL import Image
@@ -129,6 +129,8 @@ def init_db():
                         theater.city = "Northport"
                         theater.state = "NY"
             db.session.commit()
+        
+        AdminSettings.get_or_create()
 
 init_db()
 
@@ -216,7 +218,21 @@ def login():
         username = request.form.get("username")
         password = request.form.get("password")
         
-        if username == Config.ADMIN_USERNAME and password == Config.ADMIN_PASSWORD:
+        authenticated = False
+        
+        try:
+            settings = AdminSettings.query.first()
+            if settings and username == settings.username:
+                if check_password_hash(settings.password_hash, password):
+                    authenticated = True
+        except:
+            pass
+        
+        if not authenticated:
+            if username == Config.ADMIN_USERNAME and password == Config.ADMIN_PASSWORD:
+                authenticated = True
+        
+        if authenticated:
             user = AdminUser(username)
             login_user(user)
             next_page = request.args.get("next")
@@ -229,7 +245,10 @@ def login():
 @app.route("/logout")
 @login_required
 def logout():
+    next_page = request.args.get("next")
     logout_user()
+    if next_page:
+        return redirect(flask_url_for("login") + f"?next={next_page}")
     return redirect(flask_url_for("public_search"))
 
 @app.route("/")
@@ -621,6 +640,75 @@ def upload():
 def dashboard():
     productions = Production.query.order_by(Production.id.desc()).all()
     return render_template("dashboard.html", productions=productions)
+
+@app.route("/settings")
+@login_required
+def settings():
+    try:
+        admin_settings = AdminSettings.query.first()
+        if not admin_settings:
+            admin_settings = AdminSettings.get_or_create()
+        return render_template("settings.html", admin_settings=admin_settings)
+    except Exception as e:
+        logger.error(f"Error loading settings: {e}")
+        try:
+            admin_settings = AdminSettings.get_or_create()
+            return render_template("settings.html", admin_settings=admin_settings)
+        except Exception as e2:
+            logger.error(f"Error creating admin settings: {e2}")
+            from werkzeug.security import generate_password_hash
+            admin_settings = AdminSettings(
+                username='admin',
+                password_hash=generate_password_hash('admin')
+            )
+            db.session.add(admin_settings)
+            db.session.commit()
+            return render_template("settings.html", admin_settings=admin_settings)
+
+@app.route("/settings/update-credentials", methods=["POST"])
+@login_required
+def update_credentials():
+    try:
+        data = request.json
+        new_username = data.get("username", "").strip()
+        current_password = data.get("current_password", "")
+        new_password = data.get("new_password", "")
+        confirm_password = data.get("confirm_password", "")
+        
+        if not new_username:
+            return jsonify({"error": "Username cannot be empty"}), 400
+        
+        admin_settings = AdminSettings.query.first()
+        if not admin_settings:
+            admin_settings = AdminSettings.get_or_create()
+        
+        if new_password:
+            if not current_password:
+                return jsonify({"error": "Current password is required to change password"}), 400
+            
+            if not check_password_hash(admin_settings.password_hash, current_password):
+                try:
+                    if current_password != Config.ADMIN_PASSWORD:
+                        return jsonify({"error": "Current password is incorrect"}), 400
+                except:
+                    return jsonify({"error": "Current password is incorrect"}), 400
+            
+            if len(new_password) < 6:
+                return jsonify({"error": "New password must be at least 6 characters long"}), 400
+            
+            if new_password != confirm_password:
+                return jsonify({"error": "New password and confirm password do not match"}), 400
+            
+            admin_settings.password_hash = generate_password_hash(new_password)
+        
+        admin_settings.username = new_username
+        db.session.commit()
+        
+        return jsonify({"success": True, "message": "Credentials updated successfully."})
+    except Exception as e:
+        logger.error(f"Error updating credentials: {e}")
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 @app.route("/edit/<int:id>")
 @login_required
