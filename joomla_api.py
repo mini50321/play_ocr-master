@@ -97,6 +97,15 @@ def joomla_api_theater(id):
     if not theater:
         return jsonify({"error": "Theater not found"}), 404
     
+    if not theater.joomla_id:
+        return jsonify({"error": "Theater not linked to Joomla"}), 404
+    
+    from joomla_theater_fetch import get_theater_from_joomla
+    joomla_data = get_theater_from_joomla(theater.joomla_id)
+    
+    if not joomla_data:
+        return jsonify({"error": "Theater data not found in Joomla"}), 404
+    
     productions = Production.query.filter_by(theater_id=id).order_by(Production.year.desc()).all()
     
     shows_data = {}
@@ -136,8 +145,15 @@ def joomla_api_theater(id):
     
     return jsonify({
         'id': theater.id,
-        'name': theater.name,
-        'joomla_id': theater.joomla_id,
+        'joomla_id': joomla_data.get('joomla_id'),
+        'name': joomla_data.get('name'),
+        'address': joomla_data.get('address'),
+        'description': joomla_data.get('description'),
+        'image': joomla_data.get('image'),
+        'latitude': joomla_data.get('latitude'),
+        'longitude': joomla_data.get('longitude'),
+        'city': joomla_data.get('city'),
+        'state': joomla_data.get('state'),
         'shows': list(shows_data.values())
     })
 

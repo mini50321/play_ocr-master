@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="bg-white shadow sm:rounded-lg overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-900">Unmatched Theaters</h1>
+            <p class="text-gray-600 mt-1">Theaters that exist but are not linked to Joomla database</p>
+        </div>
+        
+        <div class="px-6 py-4">
+            {% if theaters %}
+            <div class="space-y-4">
+                {% for theater in theaters %}
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">{{ theater.name }}</h3>
+                            {% if theater.city or theater.state %}
+                            <p class="text-sm text-gray-600 mt-1">
+                                {% if theater.city %}{{ theater.city }}{% endif %}{% if theater.city and theater.state %}, {% endif %}{% if theater.state %}{{ theater.state }}{% endif %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <input type="number" 
+                                   id="joomla_id_{{ theater.id }}" 
+                                   placeholder="Joomla ID" 
+                                   class="px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-32">
+                            <button onclick="linkTheater({{ theater.id }})" 
+                                    class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                                Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <p class="text-gray-500">All theaters are linked to Joomla database.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+async function linkTheater(theaterId) {
+    const joomlaIdInput = document.getElementById('joomla_id_' + theaterId);
+    const joomlaId = joomlaIdInput.value.trim();
+    
+    if (!joomlaId) {
+        alert('Please enter a Joomla ID');
+        return;
+    }
+    
+    try {
+        const response = await fetch('{{ url_for("link_theater") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                theater_id: theaterId,
+                joomla_id: joomlaId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Theater linked successfully!');
+            window.location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to link theater'));
+        }
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}
+

@@ -68,6 +68,55 @@ def normalize_name(name):
     
     return name.title()
 
+def get_theater_name_from_joomla(joomla_id):
+    """Get theater name from Joomla database by joomla_id. Raises error if not found."""
+    if not joomla_id:
+        raise ValueError("Theater joomla_id is required")
+    from joomla_theater_fetch import get_theater_from_joomla
+    joomla_data = get_theater_from_joomla(joomla_id)
+    if not joomla_data:
+        raise ValueError(f"Theater data not found in Joomla for joomla_id: {joomla_id}")
+    return joomla_data.get('name')
+
+def find_or_match_theater(theater_name):
+    if not theater_name:
+        return None
+    
+    theater_name = theater_name.strip()
+    if not theater_name:
+        return None
+    
+    exact_match = Theater.query.filter(Theater.name.ilike(theater_name)).first()
+    if exact_match and exact_match.joomla_id:
+        return exact_match
+    
+    normalized_name = theater_name.upper().strip()
+    normalized_name = normalized_name.replace("THEATRE", "THEATER")
+    normalized_name = normalized_name.replace("THE ", "").strip()
+    
+    all_theaters = Theater.query.filter(Theater.joomla_id.isnot(None)).all()
+    
+    best_match = None
+    best_score = 0
+    
+    for t in all_theaters:
+        t_normalized = t.name.upper().replace("THEATRE", "THEATER").replace("THE ", "").strip()
+        
+        if normalized_name == t_normalized:
+            return t
+        
+        if len(normalized_name) > 5 and len(t_normalized) > 5:
+            if normalized_name in t_normalized or t_normalized in normalized_name:
+                overlap = min(len(normalized_name), len(t_normalized))
+                if overlap > best_score:
+                    best_score = overlap
+                    best_match = t
+    
+    if best_match and best_score > 10:
+        return best_match
+    
+    return exact_match if exact_match else None
+
 ALL_CATEGORIES = [
     'Cast',
     'Creative',
@@ -732,6 +781,8 @@ def edit(id):
     production = db.session.get(Production, id)
     if not production:
         return "Production not found", 404
+    if not production.theater.joomla_id:
+        return "Theater is not linked to Joomla database", 400
         
     all_credits = []
     for credit in production.credits:
@@ -744,7 +795,7 @@ def edit(id):
         
     data = {
         "show_title": production.show.title,
-        "theatre_name": production.theater.name,
+        "theatre_name": get_theater_name_from_joomla(production.theater.joomla_id),
         "production_year": production.year,
         "start_date": production.start_date,
         "end_date": production.end_date,
@@ -759,6 +810,14 @@ def edit(id):
 @app.route("/save", methods=["POST"])
 @login_required
 def save():
+    try:
+        from joomla_sync import sync_theaters_from_joomla
+        sync_count = sync_theaters_from_joomla()
+        if sync_count > 0:
+            logger.info(f"Auto-synced {sync_count} theaters from Joomla before save")
+    except Exception as e:
+        logger.warning(f"Could not auto-sync theaters: {e}")
+    
     data = request.json
     try:
         production_id = data.get("production_id")
@@ -772,11 +831,21 @@ def save():
             db.session.flush()
 
         theater_name = data.get("theatre_name")
-        theater = Theater.query.filter(Theater.name.ilike(theater_name)).first()
+        theater = find_or_match_theater(theater_name)
+        
         if not theater:
-             theater = Theater(name=theater_name)
-             db.session.add(theater)
-             db.session.flush()
+            return jsonify({
+                "error": "Theater not found",
+                "message": f"Theater '{theater_name}' was not found in the database. Please sync theaters from Joomla first, or ensure the theater name matches exactly.",
+                "suggested_action": "sync_theaters"
+            }), 400
+        
+        if not theater.joomla_id:
+            return jsonify({
+                "error": "Theater not linked to Joomla",
+                "message": f"Theater '{theater.name}' exists but is not linked to Joomla database. Please sync theaters or link manually.",
+                "suggested_action": "link_theater"
+            }), 400
 
         if production_id:
             production = db.session.get(Production, production_id)
@@ -897,6 +966,8 @@ def download_production(id):
         production = db.session.get(Production, id)
         if not production:
             return "Production not found", 404
+        if not production.theater.joomla_id:
+            return "Theater is not linked to Joomla database", 400
 
         all_credits = []
         for credit in production.credits:
@@ -909,7 +980,7 @@ def download_production(id):
             
         data = {
             "show_title": production.show.title,
-            "theatre_name": production.theater.name,
+            "theatre_name": get_theater_name_from_joomla(production.theater.joomla_id),
             "production_year": production.year,
             "start_date": production.start_date,
             "end_date": production.end_date,
@@ -1098,11 +1169,26 @@ def public_actor(id):
         if discipline not in credits_by_discipline:
             credits_by_discipline[discipline] = []
         
+        if not theater.joomla_id:
+            raise ValueError(f"Theater {theater.id} is not linked to Joomla")
+        
+        theater_name = get_theater_name_from_joomla(theater.joomla_id)
+        
+        from joomla_theater_fetch import get_theater_from_joomla
+        joomla_data = get_theater_from_joomla(theater.joomla_id)
+        if not joomla_data:
+            raise ValueError(f"Theater data not found in Joomla for joomla_id: {theater.joomla_id}")
+        
+        theater_lat = joomla_data.get('latitude')
+        theater_lng = joomla_data.get('longitude')
+        theater_city = joomla_data.get('city')
+        theater_state = joomla_data.get('state')
+        
         credits_by_discipline[discipline].append({
             'role': credit.role,
             'show_title': show.title,
             'show_id': show.id,
-            'theater_name': theater.name,
+            'theater_name': theater_name,
             'theater_id': theater.id,
             'year': production.year,
             'is_equity': credit.is_equity,
@@ -1112,7 +1198,7 @@ def public_actor(id):
         discipline_name = get_discipline_from_credit(credit.category, credit.role)
         disciplines_set.add(discipline_name)
         
-        theaters_set.add((theater.id, theater.name, theater.latitude, theater.longitude, theater.city, theater.state))
+        theaters_set.add((theater.id, theater_name, theater_lat, theater_lng, theater_city, theater_state))
     
     theaters_list = []
     theaters_with_coords = []
@@ -1168,9 +1254,22 @@ def public_show(id):
                 'is_equity': credit.is_equity
             })
         
+        theater = prod.theater
+        if not theater.joomla_id:
+            raise ValueError(f"Theater {theater.id} is not linked to Joomla")
+        theater_name = get_theater_name_from_joomla(theater.joomla_id)
+        
+        class TheaterWrapper:
+            def __init__(self, theater_obj, name):
+                self.id = theater_obj.id
+                self.name = name
+                self.joomla_id = theater_obj.joomla_id
+        
+        theater_wrapper = TheaterWrapper(theater, theater_name)
+        
         all_credits_by_production[prod.id] = {
             'production': prod,
-            'theater': prod.theater,
+            'theater': theater_wrapper,
             'credits': credits_by_category
         }
     
@@ -1183,6 +1282,30 @@ def public_theater(id):
     theater = db.session.get(Theater, id)
     if not theater:
         return "Theater not found", 404
+    
+    if not theater.joomla_id:
+        return "Theater not linked to Joomla database", 404
+    
+    from joomla_theater_fetch import get_theater_from_joomla
+    joomla_theater_data = get_theater_from_joomla(theater.joomla_id)
+    
+    if not joomla_theater_data:
+        return "Theater data not found in Joomla database", 404
+    
+    class TheaterData:
+        def __init__(self, local_theater, joomla_data):
+            self.id = local_theater.id
+            self.joomla_id = joomla_data.get('joomla_id')
+            self.name = joomla_data.get('name')
+            self.address = joomla_data.get('address')
+            self.description = joomla_data.get('description')
+            self.image = joomla_data.get('image')
+            self.latitude = joomla_data.get('latitude')
+            self.longitude = joomla_data.get('longitude')
+            self.city = joomla_data.get('city')
+            self.state = joomla_data.get('state')
+    
+    theater_data = TheaterData(theater, joomla_theater_data)
     
     productions = Production.query.filter_by(theater_id=id).order_by(Production.year.desc(), Production.start_date).all()
     
@@ -1197,7 +1320,7 @@ def public_theater(id):
         shows_data[show_id]['productions'].append(prod)
     
     return render_template("public_theater.html", 
-                         theater=theater, 
+                         theater=theater_data, 
                          shows_data=shows_data)
 
 @app.route("/admin/add-sample-data")
@@ -1209,6 +1332,48 @@ def add_sample_data_route():
         return jsonify({"success": True, "message": "Sample data added successfully!"}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/admin/theaters/unmatched")
+@login_required
+def unmatched_theaters():
+    unmatched = Theater.query.filter(Theater.joomla_id.is_(None)).all()
+    return render_template("unmatched_theaters.html", theaters=unmatched)
+
+@app.route("/admin/theaters/link", methods=["POST"])
+@login_required
+def link_theater():
+    data = request.json
+    theater_id = data.get("theater_id")
+    joomla_id = data.get("joomla_id")
+    
+    if not theater_id or not joomla_id:
+        return jsonify({"error": "Missing theater_id or joomla_id"}), 400
+    
+    theater = db.session.get(Theater, theater_id)
+    if not theater:
+        return jsonify({"error": "Theater not found"}), 404
+    
+    try:
+        import pymysql
+        conn = pymysql.connect(
+            host=Config.JOOMLA_DB_HOST,
+            user=Config.JOOMLA_DB_USER,
+            password=Config.JOOMLA_DB_PASSWORD,
+            database=Config.JOOMLA_DB_NAME,
+            charset='utf8mb4'
+        )
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT id FROM {Config.JOOMLA_THEATER_TABLE} WHERE id = %s", (joomla_id,))
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({"error": "Joomla ID not found"}), 404
+        conn.close()
+    except Exception as e:
+        return jsonify({"error": f"Could not verify Joomla ID: {str(e)}"}), 500
+    
+    theater.joomla_id = int(joomla_id)
+    db.session.commit()
+    return jsonify({"success": True, "message": "Theater linked successfully"})
 
 @app.route("/admin/sync-theaters")
 @login_required
@@ -1302,17 +1467,24 @@ def public_search():
         
         if filter_type in ['all', 'theaters']:
             theaters = Theater.query.filter(
-                Theater.name.ilike(f'%{query}%')
+                Theater.joomla_id.isnot(None)
             ).all()
             
             for theater in theaters:
-                prod_count = Production.query.filter_by(theater_id=theater.id).count()
-                if prod_count > 0:
-                    results['theaters'].append({
-                        'id': theater.id,
-                        'name': theater.name,
-                        'productions_count': prod_count
-                    })
+                try:
+                    theater_name = get_theater_name_from_joomla(theater.joomla_id)
+                    if query.lower() not in (theater_name or '').lower():
+                        continue
+                    
+                    prod_count = Production.query.filter_by(theater_id=theater.id).count()
+                    if prod_count > 0:
+                        results['theaters'].append({
+                            'id': theater.id,
+                            'name': theater_name,
+                            'productions_count': prod_count
+                        })
+                except:
+                    continue
     
     return render_template("public_search.html", 
                          query=query,
