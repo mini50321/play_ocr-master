@@ -861,16 +861,20 @@ def edit(id):
             "is_equity": credit.is_equity
         })
         
+    theater_name = get_theater_name_from_joomla(production.theater.joomla_id)
+    
     data = {
         "show_title": production.show.title,
-        "theatre_name": get_theater_name_from_joomla(production.theater.joomla_id),
+        "theatre_name": theater_name,
         "production_year": production.year,
         "start_date": production.start_date,
         "end_date": production.end_date,
         "preview_image": production.preview_image,
         "youtube_url": production.youtube_url,
         "all_credits": all_credits,
-        "production_id": production.id
+        "production_id": production.id,
+        "matched_theater_id": production.theater.id,
+        "matched_theater_name": production.theater.name
     }
     
     return render_template("review.html", data=data, filename=f"Edit: {production.show.title}")
@@ -1369,13 +1373,39 @@ def public_theater(id):
     if not joomla_theater_data:
         return "Theater data not found in Joomla database", 404
     
+    import re
+    
+    def clean_html_description(html_text):
+        if not html_text:
+            return None
+        text = str(html_text)
+        text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<p[^>]*>', '\n\n', text, flags=re.IGNORECASE)
+        text = re.sub(r'</p>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'<br[^>]*>', '\n', text, flags=re.IGNORECASE)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
+        text = re.sub(r'[ \t]+', ' ', text)
+        text = text.replace('&nbsp;', ' ')
+        text = text.replace('&amp;', '&')
+        text = text.replace('&lt;', '<')
+        text = text.replace('&gt;', '>')
+        text = text.replace('&quot;', '"')
+        text = text.replace('&#39;', "'")
+        text = text.replace('&apos;', "'")
+        text = re.sub(r'^\s+|\s+$', '', text, flags=re.MULTILINE)
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        return text.strip() if text.strip() else None
+    
     class TheaterData:
         def __init__(self, local_theater, joomla_data):
             self.id = local_theater.id
             self.joomla_id = joomla_data.get('joomla_id')
             self.name = joomla_data.get('name')
             self.address = joomla_data.get('address')
-            self.description = joomla_data.get('description')
+            raw_description = joomla_data.get('description')
+            self.description = clean_html_description(raw_description) if raw_description else None
             self.image = joomla_data.get('image')
             self.latitude = joomla_data.get('latitude')
             self.longitude = joomla_data.get('longitude')
