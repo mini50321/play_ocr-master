@@ -270,8 +270,14 @@ def inject_url_for():
             root = APPLICATION_ROOT.rstrip('/')
             if not url.startswith(root):
                 url = root + url
+        if url.startswith('http://') or url.startswith('https://'):
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            url = parsed.path
+            if parsed.query:
+                url += '?' + parsed.query
         return url
-    return dict(url_for=url_for, current_user=current_user)
+    return dict(url_for=url_for, current_user=current_user, APPLICATION_ROOT=APPLICATION_ROOT)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
