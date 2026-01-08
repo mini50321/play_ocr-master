@@ -1234,13 +1234,25 @@ def public_actor(id):
         joomla_actor_data = get_actor_from_joomla(person.joomla_id)
         if joomla_actor_data and joomla_actor_data.get('photo'):
             photo_path = joomla_actor_data.get('photo')
-            if photo_path:
+            if photo_path and str(photo_path).strip():
+                photo_path = str(photo_path).strip()
                 if photo_path.startswith('http://') or photo_path.startswith('https://'):
                     actor_photo = photo_path
                 elif photo_path.startswith('/'):
-                    actor_photo = photo_path
+                    if not photo_path.startswith('//'):
+                        actor_photo = photo_path
+                    else:
+                        actor_photo = 'https:' + photo_path
+                elif photo_path.startswith('images/'):
+                    actor_photo = 'https://www.broadwayandmain.com/' + photo_path
                 else:
-                    actor_photo = '/' + photo_path.lstrip('/')
+                    actor_photo = 'https://www.broadwayandmain.com/images/' + photo_path.lstrip('/')
+    
+    if not actor_photo:
+        from joomla_actor_fetch import find_actor_photo_in_articles
+        article_photo = find_actor_photo_in_articles(person.name)
+        if article_photo:
+            actor_photo = article_photo
     
     if not actor_photo and person.photo:
         actor_photo = flask_url_for('static', filename=person.photo)
