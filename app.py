@@ -704,6 +704,17 @@ def upload():
                 if field not in data:
                     data[field] = data.get(field, '')
             
+            theater_name = data.get('theatre_name', '')
+            matched_theater = None
+            if theater_name:
+                matched_theater = find_or_match_theater(theater_name)
+                if matched_theater:
+                    data['matched_theater_id'] = matched_theater.id
+                    data['matched_theater_name'] = matched_theater.name
+                else:
+                    data['matched_theater_id'] = None
+                    data['matched_theater_name'] = None
+            
             try:
                 logger.info("Rendering review template")
                 return render_template("review.html", data=data, filename=filename)
@@ -887,15 +898,24 @@ def save():
             db.session.add(show)
             db.session.flush()
 
+        theater_id = data.get("theater_id")
         theater_name = data.get("theatre_name")
-        theater = find_or_match_theater(theater_name)
         
-        if not theater:
-            return jsonify({
-                "error": "Theater not found",
-                "message": f"Theater '{theater_name}' was not found in the database. Please sync theaters from Joomla first, or ensure the theater name matches exactly.",
-                "suggested_action": "sync_theaters"
-            }), 400
+        if theater_id:
+            theater = db.session.get(Theater, theater_id)
+            if not theater:
+                return jsonify({
+                    "error": "Theater not found",
+                    "message": f"Theater with ID {theater_id} was not found in the database."
+                }), 400
+        else:
+            theater = find_or_match_theater(theater_name)
+            if not theater:
+                return jsonify({
+                    "error": "Theater not found",
+                    "message": f"Theater '{theater_name}' was not found in the database. Please select a theater from the dropdown or sync theaters from Joomla first.",
+                    "suggested_action": "sync_theaters"
+                }), 400
         
         if not theater.joomla_id:
             return jsonify({
@@ -1507,6 +1527,19 @@ def public_search():
                          equity_filter=equity_filter,
                          results=results,
                          categories=all_categories)
+
+@app.route("/api/theaters")
+@login_required
+def get_theaters():
+    theaters = Theater.query.filter(Theater.joomla_id.isnot(None)).order_by(Theater.name).all()
+    theaters_list = []
+    for theater in theaters:
+        theaters_list.append({
+            'id': theater.id,
+            'name': theater.name,
+            'joomla_id': theater.joomla_id
+        })
+    return jsonify(theaters_list)
 
 @app.route("/autocomplete/theaters")
 def autocomplete_theaters():

@@ -38,9 +38,24 @@
                     class="mt-1 bg-yellow-50 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md p-2 border">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Theater Name</label>
+                <label class="block text-sm font-medium text-gray-700">Theater Name (Extracted)</label>
                 <input type="text" id="theatre_name" value="{{ data.theatre_name }}"
                     class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md p-2 border">
+                <div id="theater_match_status" class="mt-2 text-sm">
+                    {% if data.matched_theater_name %}
+                    <span class="text-green-600 font-medium">✓ Linked to: <span id="matched_theater_display">{{ data.matched_theater_name }}</span></span>
+                    {% else %}
+                    <span class="text-red-600 font-medium">✗ Linked to: <span id="matched_theater_display">NO MATCH</span></span>
+                    {% endif %}
+                </div>
+                <input type="hidden" id="initial_matched_theater_id" value="{{ data.matched_theater_id or '' }}">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Select Theater (from Database)</label>
+                <select id="theater_id" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md p-2 border">
+                    <option value="">-- Select Theater --</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Change the matched theater if incorrect, or manually select if no match found</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Production Year</label>
@@ -346,6 +361,8 @@
             }
         });
 
+        const theater_id = document.getElementById('theater_id').value;
+        
         const payload = {
             show_title,
             theatre_name,
@@ -355,6 +372,7 @@
             preview_image,
             youtube_url,
             credits,
+            theater_id: theater_id || null,
             production_id: {{ data.production_id | default ('null') }},
             override: override
         };
@@ -391,7 +409,53 @@
     }
     }
 
+    let allTheaters = [];
+    
+    async function loadTheaters() {
+        try {
+            const response = await fetch('{{ url_for("get_theaters") }}');
+            if (response.ok) {
+                allTheaters = await response.json();
+                const theaterSelect = document.getElementById('theater_id');
+                theaterSelect.innerHTML = '<option value="">-- Select Theater --</option>';
+                
+                const initialTheaterId = document.getElementById('initial_matched_theater_id').value;
+                
+                allTheaters.forEach(theater => {
+                    const option = document.createElement('option');
+                    option.value = theater.id;
+                    option.textContent = theater.name;
+                    if (initialTheaterId && theater.id == parseInt(initialTheaterId)) {
+                        option.selected = true;
+                    }
+                    theaterSelect.appendChild(option);
+                });
+                
+                theaterSelect.addEventListener('change', function() {
+                    const selectedId = this.value;
+                    if (selectedId) {
+                        const selectedTheater = allTheaters.find(t => t.id == parseInt(selectedId));
+                        if (selectedTheater) {
+                            document.getElementById('matched_theater_display').textContent = selectedTheater.name;
+                            document.getElementById('theater_match_status').innerHTML = 
+                                '<span class="text-green-600 font-medium">✓ Linked to: <span id="matched_theater_display">' + 
+                                selectedTheater.name + '</span></span>';
+                        }
+                    } else {
+                        document.getElementById('matched_theater_display').textContent = 'NO MATCH';
+                        document.getElementById('theater_match_status').innerHTML = 
+                            '<span class="text-red-600 font-medium">✗ Linked to: <span id="matched_theater_display">NO MATCH</span></span>';
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error loading theaters:', error);
+        }
+    }
+    
     document.addEventListener('DOMContentLoaded', function () {
+        loadTheaters();
+        
         const startDateInput = document.getElementById('start_date');
         const productionYearInput = document.getElementById('production_year');
 
