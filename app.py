@@ -1222,6 +1222,23 @@ def public_actor(id):
     if not person:
         return "Actor not found", 404
     
+    actor_photo = None
+    if person.joomla_id:
+        from joomla_actor_fetch import get_actor_from_joomla
+        joomla_actor_data = get_actor_from_joomla(person.joomla_id)
+        if joomla_actor_data and joomla_actor_data.get('photo'):
+            photo_path = joomla_actor_data.get('photo')
+            if photo_path:
+                if photo_path.startswith('http://') or photo_path.startswith('https://'):
+                    actor_photo = photo_path
+                elif photo_path.startswith('/'):
+                    actor_photo = photo_path
+                else:
+                    actor_photo = '/' + photo_path.lstrip('/')
+    
+    if not actor_photo and person.photo:
+        actor_photo = flask_url_for('static', filename=person.photo)
+    
     normalized_name = normalize_name(person.name)
     if person.name != normalized_name:
         person.name = normalized_name
@@ -1302,8 +1319,17 @@ def public_actor(id):
     disciplines_list = sorted(disciplines_set)
     disciplines_count = len(disciplines_list)
     
+    class PersonData:
+        def __init__(self, person_obj, photo_url):
+            self.id = person_obj.id
+            self.name = person_obj.name
+            self.disciplines = person_obj.disciplines
+            self.photo = photo_url
+    
+    person_data = PersonData(person, actor_photo)
+    
     return render_template("public_actor.html", 
-                         person=person, 
+                         person=person_data, 
                          credits_by_discipline=credits_by_discipline,
                          theaters=theaters_list,
                          theaters_map=theaters_with_coords,

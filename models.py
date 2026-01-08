@@ -29,6 +29,7 @@ class Person(db.Model):
     name: Mapped[str] = mapped_column(String(100))
     disciplines: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     photo: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    joomla_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
 class Production(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)

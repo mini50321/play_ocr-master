@@ -25,6 +25,7 @@ class Config:
     JOOMLA_DB_PASSWORD = os.getenv('JOOMLA_DB_PASSWORD', '')
     JOOMLA_DB_NAME = os.getenv('JOOMLA_DB_NAME', 'broadmain')
     JOOMLA_THEATER_TABLE = os.getenv('JOOMLA_THEATER_TABLE', 'wa8wx_jbusinessdirectory_companies')
+    JOOMLA_ACTOR_TABLE = os.getenv('JOOMLA_ACTOR_TABLE', 'wa8wx_jbusinessdirectory_persons')
     
     TEST_MODE = os.getenv('TEST_MODE', 'false').lower() == 'true'
     
