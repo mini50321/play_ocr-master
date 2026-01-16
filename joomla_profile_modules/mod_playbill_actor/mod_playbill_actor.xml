@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_PLAYBILL_ACTOR</name>
+    <author>Playbill System</author>
+    <creationDate>2025-01-07</creationDate>
+    <copyright>Copyright (C) 2025</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>admin@example.com</authorEmail>
+    <authorUrl>https://www.broadwayandmain.com</authorUrl>
+    <version>1.0.0</version>
+    <description>MOD_PLAYBILL_ACTOR_XML_DESCRIPTION</description>
+    
+    <files>
+        <filename module="mod_playbill_actor">mod_playbill_actor.php</filename>
+        <folder>tmpl</folder>
+        <folder>helper</folder>
+    </files>
+    
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_playbill_actor.ini</language>
+        <language tag="en-GB">language/en-GB/mod_playbill_actor.sys.ini</language>
+    </languages>
+    
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field
+                    name="module_enabled"
+                    type="radio"
+                    label="MOD_PLAYBILL_ACTOR_ENABLED_LABEL"
+                    description="MOD_PLAYBILL_ACTOR_ENABLED_DESC"
+                    default="1"
+                    class="btn-group btn-group-yesno">
+                    <option value="1">JYES</option>
+                    <option value="0">JNO</option>
+                </field>
+                
+                <field
+                    name="actor_id"
+                    type="text"
+                    label="MOD_PLAYBILL_ACTOR_ID_LABEL"
+                    description="MOD_PLAYBILL_ACTOR_ID_DESC"
+                    default="0"
+                    size="10"
+                />
+                
+                <field
+                    name="api_base_url"
+                    type="text"
+                    label="MOD_PLAYBILL_ACTOR_API_URL_LABEL"
+                    description="MOD_PLAYBILL_ACTOR_API_URL_DESC"
+                    default="https://www.broadwayandmain.com/playbill_app/api/joomla"
+                    size="60"
+                />
+                
+                <field
+                    name="public_base_url"
+                    type="text"
+                    label="MOD_PLAYBILL_ACTOR_PUBLIC_URL_LABEL"
+                    description="MOD_PLAYBILL_ACTOR_PUBLIC_URL_DESC"
+                    default="https://www.broadwayandmain.com/playbill_app/public"
+                    size="60"
+                />
+            </fieldset>
+        </fields>
+    </config>
+</extension>
+
