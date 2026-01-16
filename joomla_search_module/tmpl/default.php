@@ -83,7 +83,8 @@ $search_url = $results_page_id
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
                         if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                            echo htmlspecialchars($profile_base_url . (strpos($profile_base_url, '?') !== false ? '&' : '?') . 'id=' . $actor['id']);
+                            $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
+                            echo htmlspecialchars($profile_base_url . $separator . 'id=' . $actor['id'] . '&type=actor');
                         } else {
                             echo htmlspecialchars($profile_base_url . '/actor/' . $actor['id']);
                         }
@@ -110,7 +111,8 @@ $search_url = $results_page_id
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
                         if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                            echo htmlspecialchars($profile_base_url . '/show' . (strpos($profile_base_url, '?') !== false ? '&' : '?') . 'id=' . $show['id']);
+                            $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
+                            echo htmlspecialchars($profile_base_url . $separator . 'id=' . $show['id'] . '&type=show');
                         } else {
                             echo htmlspecialchars($profile_base_url . '/show/' . $show['id']);
                         }
@@ -137,7 +139,8 @@ $search_url = $results_page_id
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
                         if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                            echo htmlspecialchars($profile_base_url . '/theater' . (strpos($profile_base_url, '?') !== false ? '&' : '?') . 'id=' . $theater['id']);
+                            $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
+                            echo htmlspecialchars($profile_base_url . $separator . 'id=' . $theater['id'] . '&type=theater');
                         } else {
                             echo htmlspecialchars($profile_base_url . '/theater/' . $theater['id']);
                         }
