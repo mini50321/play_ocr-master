@@ -7,11 +7,20 @@ use Joomla\CMS\Uri\Uri;
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
 $profile_base_url = $params->get('profile_base_url', '');
+$actor_profile_url = $params->get('actor_profile_url', '');
+$show_profile_url = $params->get('show_profile_url', '');
+$theater_profile_url = $params->get('theater_profile_url', '');
 $results_page_id = $params->get('results_page_id', 0);
 $module_enabled = $params->get('module_enabled', 1);
 
-if (empty($profile_base_url)) {
-    $profile_base_url = $public_base_url;
+if (empty($actor_profile_url)) {
+    $actor_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
+}
+if (empty($show_profile_url)) {
+    $show_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
+}
+if (empty($theater_profile_url)) {
+    $theater_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
 }
 
 if (!$module_enabled) {
@@ -82,11 +91,11 @@ $search_url = $results_page_id
                 <?php foreach ($results['actors'] as $actor): ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
-                        if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                            $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
-                            echo htmlspecialchars($profile_base_url . $separator . 'id=' . $actor['id'] . '&type=actor');
+                        if (strpos($actor_profile_url, 'index.php') !== false || strpos($actor_profile_url, '?') !== false) {
+                            $separator = (strpos($actor_profile_url, '?') !== false) ? '&' : '?';
+                            echo htmlspecialchars($actor_profile_url . $separator . 'id=' . $actor['id'] . '&type=actor');
                         } else {
-                            echo htmlspecialchars($profile_base_url . '/actor/' . $actor['id']);
+                            echo htmlspecialchars($actor_profile_url . '/actor/' . $actor['id']);
                         }
                     ?>" 
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">
@@ -110,11 +119,11 @@ $search_url = $results_page_id
                 <?php foreach ($results['shows'] as $show): ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
-                        if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                            $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
-                            echo htmlspecialchars($profile_base_url . $separator . 'id=' . $show['id'] . '&type=show');
+                        if (strpos($show_profile_url, 'index.php') !== false || strpos($show_profile_url, '?') !== false) {
+                            $separator = (strpos($show_profile_url, '?') !== false) ? '&' : '?';
+                            echo htmlspecialchars($show_profile_url . $separator . 'id=' . $show['id'] . '&type=show');
                         } else {
-                            echo htmlspecialchars($profile_base_url . '/show/' . $show['id']);
+                            echo htmlspecialchars($show_profile_url . '/show/' . $show['id']);
                         }
                     ?>" 
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">
@@ -138,11 +147,11 @@ $search_url = $results_page_id
                 <?php foreach ($results['theaters'] as $theater): ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
-                        if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                            $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
-                            echo htmlspecialchars($profile_base_url . $separator . 'id=' . $theater['id'] . '&type=theater');
+                        if (strpos($theater_profile_url, 'index.php') !== false || strpos($theater_profile_url, '?') !== false) {
+                            $separator = (strpos($theater_profile_url, '?') !== false) ? '&' : '?';
+                            echo htmlspecialchars($theater_profile_url . $separator . 'id=' . $theater['id'] . '&type=theater');
                         } else {
-                            echo htmlspecialchars($profile_base_url . '/theater/' . $theater['id']);
+                            echo htmlspecialchars($theater_profile_url . '/theater/' . $theater['id']);
                         }
                     ?>" 
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">

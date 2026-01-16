@@ -70,6 +70,33 @@
                     default=""
                     size="60"
                 />
+                
+                <field
+                    name="actor_profile_url"
+                    type="text"
+                    label="MOD_PLAYBILL_SEARCH_ACTOR_PROFILE_URL_LABEL"
+                    description="MOD_PLAYBILL_SEARCH_ACTOR_PROFILE_URL_DESC"
+                    default=""
+                    size="60"
+                />
+                
+                <field
+                    name="show_profile_url"
+                    type="text"
+                    label="MOD_PLAYBILL_SEARCH_SHOW_PROFILE_URL_LABEL"
+                    description="MOD_PLAYBILL_SEARCH_SHOW_PROFILE_URL_DESC"
+                    default=""
+                    size="60"
+                />
+                
+                <field
+                    name="theater_profile_url"
+                    type="text"
+                    label="MOD_PLAYBILL_SEARCH_THEATER_PROFILE_URL_LABEL"
+                    description="MOD_PLAYBILL_SEARCH_THEATER_PROFILE_URL_DESC"
+                    default=""
+                    size="60"
+                />
             </fieldset>
         </fields>
     </config>
