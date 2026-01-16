@@ -5,7 +5,7 @@ use Joomla\CMS\Log\Log;
 
 class ModPlaybillSearchHelper
 {
-    public static function performSearch($query, $api_base_url, $filter_type = 'all', $equity_filter = 'all')
+    public static function performSearch($query, $api_base_url, $filter_type = 'all')
     {
         if (empty($query)) {
             return [
@@ -18,9 +18,6 @@ class ModPlaybillSearchHelper
         $url = $api_base_url . '/search?q=' . urlencode($query);
         if ($filter_type !== 'all') {
             $url .= '&type=' . urlencode($filter_type);
-        }
-        if ($equity_filter !== 'all') {
-            $url .= '&equity=' . urlencode($equity_filter);
         }
         
         $ch = curl_init($url);
