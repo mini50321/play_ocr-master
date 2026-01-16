@@ -97,6 +97,8 @@ $search_url = $results_page_id
                             echo htmlspecialchars($profile_base_url . '/actor/' . $actor['id']);
                         }
                     ?>" 
+                       target="_blank"
+                       rel="noopener noreferrer"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px;">
                         <?php echo htmlspecialchars($actor['name']); ?>
                     </a>
@@ -124,6 +126,8 @@ $search_url = $results_page_id
                             echo htmlspecialchars($profile_base_url . '/show/' . $show['id']);
                         }
                     ?>" 
+                       target="_blank"
+                       rel="noopener noreferrer"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px;">
                         <?php echo htmlspecialchars($show['title']); ?>
                     </a>
@@ -151,6 +155,8 @@ $search_url = $results_page_id
                             echo htmlspecialchars($profile_base_url . '/theater/' . $theater['id']);
                         }
                     ?>" 
+                       target="_blank"
+                       rel="noopener noreferrer"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px;">
                         <?php echo htmlspecialchars($theater['name']); ?>
                     </a>
