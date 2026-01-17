@@ -51,6 +51,10 @@ def joomla_api_actor(id):
     
     credits_data = []
     theaters_set = set()
+    theaters_map_data = []
+    
+    from joomla_theater_fetch import get_theater_from_joomla
+    
     for credit, production, show, theater in credits:
         credits_data.append({
             'role': credit.role,
@@ -71,6 +75,27 @@ def joomla_api_actor(id):
         })
         if theater.id:
             theaters_set.add((theater.id, theater.name))
+            
+            if theater.joomla_id:
+                joomla_theater_data = get_theater_from_joomla(theater.joomla_id)
+                if joomla_theater_data:
+                    theater_lat = joomla_theater_data.get('latitude')
+                    theater_lng = joomla_theater_data.get('longitude')
+                    theater_city = joomla_theater_data.get('city', '')
+                    theater_state = joomla_theater_data.get('state', '')
+                    
+                    if theater_lat and theater_lng:
+                        try:
+                            theaters_map_data.append({
+                                'id': theater.id,
+                                'name': theater.name,
+                                'lat': float(theater_lat),
+                                'lng': float(theater_lng),
+                                'city': theater_city or '',
+                                'state': theater_state or ''
+                            })
+                        except (ValueError, TypeError):
+                            pass
     
     theaters_list = [{'id': tid, 'name': tname} for tid, tname in theaters_set]
     
@@ -88,6 +113,7 @@ def joomla_api_actor(id):
         'photo': actor_photo,
         'credits': credits_data,
         'theaters': theaters_list,
+        'theaters_map': theaters_map_data,
         'total_credits': len(credits_data)
     })
 

@@ -41,9 +41,20 @@ if (!$theater_data) {
     
     <?php if (!empty($theater_data['description'])): ?>
     <div style="margin-bottom: 30px; padding: 15px; background: #f9fafb; border-radius: 6px;">
-        <p style="color: #6b7280; margin: 0; line-height: 1.6;">
-            <?php echo nl2br(htmlspecialchars($theater_data['description'])); ?>
-        </p>
+        <div style="color: #6b7280; line-height: 1.6;">
+            <?php 
+            $clean_description = strip_tags($theater_data['description']);
+            $clean_description = html_entity_decode($clean_description, ENT_QUOTES, 'UTF-8');
+            echo nl2br(htmlspecialchars($clean_description)); 
+            ?>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <?php if (!empty($theater_data['latitude']) && !empty($theater_data['longitude'])): ?>
+    <div style="margin-bottom: 30px; padding: 15px; background: #f9fafb; border-radius: 6px;">
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 15px; color: #1f2937;">Location</h3>
+        <div id="theater-map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
     </div>
     <?php endif; ?>
     
@@ -131,4 +142,38 @@ if (!$theater_data) {
     <p style="color: #6b7280; padding: 20px; text-align: center;">No productions found for this theater.</p>
     <?php endif; ?>
 </div>
+
+<?php if (!empty($theater_data['latitude']) && !empty($theater_data['longitude'])): ?>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function() {
+    const theaterLat = <?php echo json_encode($theater_data['latitude']); ?>;
+    const theaterLng = <?php echo json_encode($theater_data['longitude']); ?>;
+    const theaterName = <?php echo json_encode($theater_data['name']); ?>;
+    const theaterAddress = <?php echo json_encode($theater_data['address'] ?? ''); ?>;
+    const theaterCity = <?php echo json_encode($theater_data['city'] ?? ''); ?>;
+    const theaterState = <?php echo json_encode($theater_data['state'] ?? ''); ?>;
+    
+    if (theaterLat && theaterLng) {
+        const map = L.map('theater-map').setView([parseFloat(theaterLat), parseFloat(theaterLng)], 15);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        const marker = L.marker([parseFloat(theaterLat), parseFloat(theaterLng)]).addTo(map);
+        let popupContent = '<div style="padding: 8px;"><strong>' + theaterName + '</strong>';
+        if (theaterAddress) {
+            popupContent += '<br><span style="color: #6b7280;">' + theaterAddress + '</span>';
+        }
+        if (theaterCity || theaterState) {
+            popupContent += '<br><span style="color: #6b7280;">' + theaterCity + (theaterCity && theaterState ? ', ' : '') + theaterState + '</span>';
+        }
+        popupContent += '</div>';
+        marker.bindPopup(popupContent);
+    }
+})();
+</script>
+<?php endif; ?>
 

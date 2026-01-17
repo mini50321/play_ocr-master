@@ -10,10 +10,20 @@ echo '<style>
     flex-direction: column;
     gap: 24px;
 }
+.playbill-theaters-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
 @media (min-width: 1024px) {
     .playbill-actor-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
+        gap: 24px;
+    }
+    .playbill-theaters-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 24px;
     }
 }
@@ -289,25 +299,38 @@ try {
     </div>
     
     <?php if (!empty($actor_data['theaters']) && is_array($actor_data['theaters']) && count($actor_data['theaters']) > 0): ?>
-    <div style="display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 24px;">
-        <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
-            <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb;">
-                <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0;">Theaters</h2>
-            </div>
-            <div style="padding: 24px;">
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <?php foreach ($actor_data['theaters'] as $theater): ?>
-                    <?php if (isset($theater['id']) && isset($theater['name'])): ?>
-                    <a href="<?php echo htmlspecialchars($public_base_url . '/theater/' . (int)$theater['id']); ?>" 
-                       style="display: block; color: #4f46e5; text-decoration: none; font-size: 14px; padding: 4px 0;"
-                       onmouseover="this.style.textDecoration='underline'"
-                       onmouseout="this.style.textDecoration='none'">
-                        <?php echo htmlspecialchars($theater['name']); ?>
-                    </a>
-                    <?php endif; ?>
-                    <?php endforeach; ?>
+    <div style="margin-top: 24px;">
+        <div class="playbill-theaters-grid">
+            <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+                <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb;">
+                    <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0;">Theaters</h2>
+                </div>
+                <div style="padding: 24px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <?php foreach ($actor_data['theaters'] as $theater): ?>
+                        <?php if (isset($theater['id']) && isset($theater['name'])): ?>
+                        <a href="<?php echo htmlspecialchars($public_base_url . '/theater/' . (int)$theater['id']); ?>" 
+                           style="display: block; color: #4f46e5; text-decoration: none; font-size: 14px; padding: 4px 0;"
+                           onmouseover="this.style.textDecoration='underline'"
+                           onmouseout="this.style.textDecoration='none'">
+                            <?php echo htmlspecialchars($theater['name']); ?>
+                        </a>
+                        <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
+            
+            <?php if (!empty($actor_data['theaters_map']) && is_array($actor_data['theaters_map']) && count($actor_data['theaters_map']) > 0): ?>
+            <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+                <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb;">
+                    <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0;">Theater Locations</h2>
+                </div>
+                <div style="padding: 24px;">
+                    <div id="actor-map" style="height: 400px; width: 100%; border-radius: 8px;"></div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
@@ -327,5 +350,43 @@ try {
     echo '</div>';
 }
 ?>
+<?php if (isset($actor_data) && !empty($actor_data['theaters_map']) && is_array($actor_data['theaters_map']) && count($actor_data['theaters_map']) > 0): ?>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function() {
+    const theaters = <?php echo json_encode($actor_data['theaters_map']); ?>;
+    const publicBaseUrl = <?php echo json_encode($public_base_url); ?>;
+    
+    if (theaters && theaters.length > 0) {
+        const map = L.map('actor-map').setView([39.8283, -98.5795], 4);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        const bounds = [];
+        
+        theaters.forEach(function(theater) {
+            if (theater.lat && theater.lng) {
+                const marker = L.marker([theater.lat, theater.lng]).addTo(map);
+                let popupContent = '<div style="padding: 8px;">';
+                popupContent += '<strong><a href="' + publicBaseUrl + '/theater/' + theater.id + '" style="color: #4f46e5; text-decoration: none;">' + (theater.name || 'Theater') + '</a></strong>';
+                if (theater.city || theater.state) {
+                    popupContent += '<br><span style="color: #6b7280;">' + (theater.city || '') + (theater.city && theater.state ? ', ' : '') + (theater.state || '') + '</span>';
+                }
+                popupContent += '</div>';
+                marker.bindPopup(popupContent);
+                bounds.push([theater.lat, theater.lng]);
+            }
+        });
+        
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [20, 20] });
+        }
+    }
+})();
+</script>
+<?php endif; ?>
 </div>
 
