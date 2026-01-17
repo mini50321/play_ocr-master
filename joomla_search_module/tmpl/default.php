@@ -100,6 +100,8 @@ $search_url = $results_page_id
                             echo htmlspecialchars($actor_profile_url . '/actor/' . $actor['id']);
                         }
                     ?>" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">
                         <?php echo htmlspecialchars($actor['name']); ?>
                         <span style="color: #6b7280; font-size: 14px; margin-left: 10px; font-weight: normal;">
@@ -136,6 +138,8 @@ $search_url = $results_page_id
                 ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php echo htmlspecialchars($show_link); ?>" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;"
                        title="Playbill Show ID: <?php echo $show_id; ?>">
                         <?php echo htmlspecialchars($show['title'] ?? 'Unknown Show'); ?>
@@ -165,6 +169,8 @@ $search_url = $results_page_id
                             echo htmlspecialchars($theater_profile_url . '/theater/' . $theater['id']);
                         }
                     ?>" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">
                         <?php echo htmlspecialchars($theater['name']); ?>
                         <span style="color: #6b7280; font-size: 14px; margin-left: 10px; font-weight: normal;">
