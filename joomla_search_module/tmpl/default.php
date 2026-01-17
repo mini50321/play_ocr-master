@@ -51,10 +51,11 @@ $search_url = $results_page_id
             <input type="text" 
                    name="playbill_q" 
                    value="<?php echo htmlspecialchars($current_query); ?>" 
-                   placeholder="Search actors, shows, theaters..." 
+                   placeholder="Search Playbill Database: actors, shows, theaters only..." 
                    class="playbill-search-input"
                    style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 16px; height: 44px; box-sizing: border-box; min-width: 0;"
-                   id="playbill-search-input">
+                   id="playbill-search-input"
+                   title="Search ONLY Playbill database (actors, shows, theaters). Does NOT search Joomla articles.">
             
             <select name="playbill_type" 
                     id="playbill-filter-type" 
@@ -77,7 +78,8 @@ $search_url = $results_page_id
     <div id="playbill-search-modal" class="playbill-modal" style="display: block; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);">
         <div class="playbill-modal-content" style="background-color: #ffffff; margin: 3% auto; padding: 0; border: none; width: 90%; max-width: 900px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-height: 85vh; overflow-y: auto; position: relative;">
             <div style="padding: 24px; border-bottom: 2px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0; position: sticky; top: 0; z-index: 1;">
-                <h2 style="margin: 0; font-size: 24px; font-weight: 600; color: #ffffff;">Search Results for "<?php echo htmlspecialchars($current_query); ?>"</h2>
+                <h2 style="margin: 0; font-size: 24px; font-weight: 600; color: #ffffff;">Playbill Database Search Results for "<?php echo htmlspecialchars($current_query); ?>"</h2>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.9);">Showing results from Playbill database only (actors, shows, theaters)</p>
                 <span class="playbill-modal-close" style="color: #ffffff; font-size: 32px; font-weight: bold; cursor: pointer; line-height: 24px; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">&times;</span>
             </div>
             <div style="padding: 24px; background: #ffffff;">
@@ -117,19 +119,28 @@ $search_url = $results_page_id
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <?php foreach ($results['shows'] as $show): ?>
+                <?php 
+                    if (!isset($show['id']) || empty($show['id'])) {
+                        continue;
+                    }
+                    $show_id = (int)$show['id'];
+                    if ($show_id <= 0) {
+                        continue;
+                    }
+                    if (strpos($show_profile_url, 'index.php') !== false || strpos($show_profile_url, '?') !== false) {
+                        $separator = (strpos($show_profile_url, '?') !== false) ? '&' : '?';
+                        $show_link = $show_profile_url . $separator . 'id=' . $show_id . '&type=show';
+                    } else {
+                        $show_link = rtrim($show_profile_url, '/') . '/show/' . $show_id;
+                    }
+                ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
-                    <a href="<?php 
-                        if (strpos($show_profile_url, 'index.php') !== false || strpos($show_profile_url, '?') !== false) {
-                            $separator = (strpos($show_profile_url, '?') !== false) ? '&' : '?';
-                            echo htmlspecialchars($show_profile_url . $separator . 'id=' . $show['id'] . '&type=show');
-                        } else {
-                            echo htmlspecialchars($show_profile_url . '/show/' . $show['id']);
-                        }
-                    ?>" 
-                       style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">
-                        <?php echo htmlspecialchars($show['title']); ?>
+                    <a href="<?php echo htmlspecialchars($show_link); ?>" 
+                       style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;"
+                       title="Playbill Show ID: <?php echo $show_id; ?>">
+                        <?php echo htmlspecialchars($show['title'] ?? 'Unknown Show'); ?>
                         <span style="color: #6b7280; font-size: 14px; margin-left: 10px; font-weight: normal;">
-                            (<?php echo (int)$show['productions_count']; ?> production(s))
+                            (<?php echo (int)($show['productions_count'] ?? 0); ?> production(s))
                         </span>
                     </a>
                 </li>

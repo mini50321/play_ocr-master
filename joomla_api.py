@@ -9,6 +9,36 @@ def joomla_api_actor(id):
     if not person:
         return jsonify({"error": "Actor not found"}), 404
     
+    actor_photo = None
+    if person.joomla_id:
+        from joomla_actor_fetch import get_actor_from_joomla
+        joomla_actor_data = get_actor_from_joomla(person.joomla_id)
+        if joomla_actor_data and joomla_actor_data.get('photo'):
+            photo_path = joomla_actor_data.get('photo')
+            if photo_path and str(photo_path).strip():
+                photo_path = str(photo_path).strip()
+                if photo_path.startswith('http://') or photo_path.startswith('https://'):
+                    actor_photo = photo_path
+                elif photo_path.startswith('/'):
+                    if not photo_path.startswith('//'):
+                        actor_photo = 'https://www.broadwayandmain.com' + photo_path
+                    else:
+                        actor_photo = 'https:' + photo_path
+                elif photo_path.startswith('images/'):
+                    actor_photo = 'https://www.broadwayandmain.com/' + photo_path
+                else:
+                    actor_photo = 'https://www.broadwayandmain.com/images/' + photo_path.lstrip('/')
+    
+    if not actor_photo:
+        from joomla_actor_fetch import find_actor_photo_in_articles
+        article_photo = find_actor_photo_in_articles(person.name)
+        if article_photo:
+            actor_photo = article_photo
+    
+    if not actor_photo and person.photo:
+        from flask import url_for
+        actor_photo = url_for('static', filename=person.photo, _external=True)
+    
     credits = db.session.query(Credit, Production, Show, Theater).join(
         Production, Credit.production_id == Production.id
     ).join(
@@ -20,6 +50,7 @@ def joomla_api_actor(id):
     ).order_by(Production.year.desc()).all()
     
     credits_data = []
+    theaters_set = set()
     for credit, production, show, theater in credits:
         credits_data.append({
             'role': credit.role,
@@ -38,12 +69,26 @@ def joomla_api_actor(id):
             'start_date': production.start_date,
             'end_date': production.end_date
         })
+        if theater.id:
+            theaters_set.add((theater.id, theater.name))
+    
+    theaters_list = [{'id': tid, 'name': tname} for tid, tname in theaters_set]
+    
+    disciplines_count = 0
+    disciplines_list = []
+    if person.disciplines:
+        disciplines_list = [d.strip() for d in person.disciplines.split(',') if d.strip()]
+        disciplines_count = len(disciplines_list)
     
     return jsonify({
         'id': person.id,
         'name': person.name,
         'disciplines': person.disciplines,
-        'credits': credits_data
+        'disciplines_count': disciplines_count,
+        'photo': actor_photo,
+        'credits': credits_data,
+        'theaters': theaters_list,
+        'total_credits': len(credits_data)
     })
 
 @joomla_api.route("/api/joomla/show/<int:id>")
