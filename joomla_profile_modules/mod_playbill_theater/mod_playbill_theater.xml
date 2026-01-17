@@ -70,6 +70,15 @@
                     default=""
                     size="60"
                 />
+                
+                <field
+                    name="actor_profile_url"
+                    type="text"
+                    label="MOD_PLAYBILL_THEATER_ACTOR_PROFILE_URL_LABEL"
+                    description="MOD_PLAYBILL_THEATER_ACTOR_PROFILE_URL_DESC"
+                    default=""
+                    size="60"
+                />
             </fieldset>
         </fields>
     </config>

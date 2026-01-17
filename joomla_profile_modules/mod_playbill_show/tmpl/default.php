@@ -10,7 +10,12 @@ $show_id = $input->getInt('id', $params->get('show_id', 0));
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
 $profile_base_url = $params->get('profile_base_url', $public_base_url);
+$actor_profile_url = $params->get('actor_profile_url', '');
 $module_enabled = $params->get('module_enabled', 1);
+
+if (empty($actor_profile_url)) {
+    $actor_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
+}
 
 if (!$module_enabled || empty($show_id)) {
     return;
@@ -71,11 +76,14 @@ $credits_by_category = ModPlaybillShowHelper::groupCreditsByCategory($latest_pro
                         <strong style="font-size: 16px; color: #1f2937;">
                             <?php 
                             $person_url = '';
-                            if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                                $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
-                                $person_url = $profile_base_url . $separator . 'id=' . $credit['person']['id'] . '&type=actor';
+                            if (strpos($actor_profile_url, 'index.php') !== false) {
+                                if (strpos($actor_profile_url, '?') !== false) {
+                                    $person_url = $actor_profile_url . '&id=' . $credit['person']['id'] . '&type=actor';
+                                } else {
+                                    $person_url = $actor_profile_url . '?id=' . $credit['person']['id'] . '&type=actor';
+                                }
                             } else {
-                                $person_url = $profile_base_url . '/actor/' . $credit['person']['id'];
+                                $person_url = rtrim($actor_profile_url, '/') . '/actor/' . $credit['person']['id'];
                             }
                             ?>
                             <a href="<?php echo htmlspecialchars($person_url); ?>" style="color: #4f46e5; text-decoration: none;">
