@@ -116,6 +116,16 @@ if (empty($actor_data['credits']) || !is_array($actor_data['credits'])) {
 
 try {
     $credits_by_category = ModPlaybillActorHelper::groupCreditsByCategory($actor_data['credits']);
+    
+    $all_credits = [];
+    if (!empty($actor_data['credits']) && is_array($actor_data['credits'])) {
+        $all_credits = $actor_data['credits'];
+        usort($all_credits, function($a, $b) {
+            $nameA = isset($a['person']['name']) ? strtolower($a['person']['name']) : (isset($a['show']['title']) ? strtolower($a['show']['title']) : '');
+            $nameB = isset($b['person']['name']) ? strtolower($b['person']['name']) : (isset($b['show']['title']) ? strtolower($b['show']['title']) : '');
+            return strcmp($nameA, $nameB);
+        });
+    }
 } catch (Exception $e) {
     echo '<div class="playbill-actor-module" style="margin: 20px 0; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">';
     echo '<h2 class="playbill-title" style="font-size: 28px; font-weight: bold; margin-bottom: 15px; color: #1f2937;">';
@@ -164,9 +174,14 @@ try {
         <div class="playbill-actor-grid">
             <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
                 <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb;">
-                    <h2 style="font-size: 20px; font-weight: 600; color: #111827; margin: 0;">Credits</h2>
+                    <h2 style="font-size: 20px; font-weight: 600; color: #111827; margin: 0; display: inline-block; margin-right: 20px;">Credits</h2>
+                    <div style="display: inline-block;">
+                        <button onclick="showCreditsView('category')" id="credits-category-btn" style="padding: 6px 16px; margin-right: 8px; background: #4f46e5; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">By Category</button>
+                        <button onclick="showCreditsView('alphabetical')" id="credits-alphabetical-btn" style="padding: 6px 16px; background: #e5e7eb; color: #6b7280; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">Alphabetical</button>
+                    </div>
                 </div>
                 <div style="padding: 24px;">
+                <div id="credits-category-view">
                 <?php if (!empty($credits_by_category)): ?>
                 <?php foreach ($credits_by_category as $category => $credits): ?>
                 <?php 
@@ -272,9 +287,99 @@ try {
                     }
                 ?>
                 <?php endforeach; ?>
+                <?php endif; ?>
+                </div>
+                
+                <div id="credits-alphabetical-view" style="display: none;">
+                <?php if (!empty($all_credits)): ?>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <?php foreach ($all_credits as $credit): ?>
+                    <?php 
+                        if (!isset($credit) || !is_array($credit)) {
+                            continue;
+                        }
+                        $show = isset($credit['show']) && is_array($credit['show']) ? $credit['show'] : null;
+                        $theater = isset($credit['theater']) && is_array($credit['theater']) ? $credit['theater'] : null;
+                        if (!$show && !$theater) {
+                            continue;
+                        }
+                    ?>
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; padding: 16px; background: #f9fafb; border-radius: 8px; transition: background 0.2s;" 
+                         onmouseover="this.style.background='#f3f4f6'"
+                         onmouseout="this.style.background='#f9fafb'">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <?php if ($show && isset($show['id']) && isset($show['title'])): ?>
+                                <?php
+                                $show_url = '';
+                                if (strpos($show_profile_url, 'index.php') !== false) {
+                                    if (strpos($show_profile_url, '?') !== false) {
+                                        $show_url = $show_profile_url . '&id=' . (int)$show['id'] . '&type=show';
+                                    } else {
+                                        $show_url = $show_profile_url . '?id=' . (int)$show['id'] . '&type=show';
+                                    }
+                                } else {
+                                    $show_url = rtrim($show_profile_url, '/') . '/show/' . (int)$show['id'];
+                                }
+                                ?>
+                                <a href="<?php echo htmlspecialchars($show_url); ?>" 
+                                   style="font-weight: 600; color: #4f46e5; text-decoration: none; font-size: 16px;"
+                                   onmouseover="this.style.color='#4338ca'"
+                                   onmouseout="this.style.color='#4f46e5'">
+                                    <?php echo htmlspecialchars($show['title']); ?>
+                                </a>
+                                <?php elseif ($show && isset($show['title'])): ?>
+                                <span style="font-weight: 600; color: #1f2937; font-size: 16px;"><?php echo htmlspecialchars($show['title']); ?></span>
+                                <?php else: ?>
+                                <span style="font-weight: 600; color: #1f2937; font-size: 16px;">Unknown Show</span>
+                                <?php endif; ?>
+                                <?php if (!empty($credit['is_equity'])): ?>
+                                <span style="display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 500; background: #d1fae5; color: #065f46;">
+                                    Equity
+                                </span>
+                                <?php endif; ?>
+                            </div>
+                            <p style="color: #4b5563; margin: 0; font-size: 14px;">
+                                <span style="font-weight: 500;"><?php echo !empty($credit['role']) && is_string($credit['role']) ? htmlspecialchars($credit['role']) : (isset($credit['category']) ? htmlspecialchars($credit['category']) : ''); ?></span>
+                                <?php if (isset($credit['category']) && !empty($credit['category'])): ?>
+                                <span style="color: #9ca3af; margin-left: 8px; font-size: 13px;">(<?php echo htmlspecialchars($credit['category']); ?>)</span>
+                                <?php endif; ?>
+                                <span style="margin: 0 8px;">•</span>
+                                <?php if ($theater && isset($theater['id']) && isset($theater['name'])): ?>
+                                <?php
+                                $theater_url = '';
+                                if (strpos($theater_profile_url, 'index.php') !== false) {
+                                    if (strpos($theater_profile_url, '?') !== false) {
+                                        $theater_url = $theater_profile_url . '&id=' . (int)$theater['id'] . '&type=theater';
+                                    } else {
+                                        $theater_url = $theater_profile_url . '?id=' . (int)$theater['id'] . '&type=theater';
+                                    }
+                                } else {
+                                    $theater_url = rtrim($theater_profile_url, '/') . '/theater/' . (int)$theater['id'];
+                                }
+                                ?>
+                                <a href="<?php echo htmlspecialchars($theater_url); ?>" 
+                                   style="color: #4f46e5; text-decoration: none;"
+                                   onmouseover="this.style.textDecoration='underline'"
+                                   onmouseout="this.style.textDecoration='none'">
+                                    <?php echo htmlspecialchars($theater['name']); ?>
+                                </a>
+                                <?php else: ?>
+                                <span><?php echo ($theater && isset($theater['name'])) ? htmlspecialchars($theater['name']) : 'Unknown Theater'; ?></span>
+                                <?php endif; ?>
+                                <?php if (isset($credit['year']) && $credit['year']): ?>
+                                <span style="margin: 0 8px;">•</span>
+                                <span style="color: #6b7280;"><?php echo (int)$credit['year']; ?></span>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
                 <?php else: ?>
                 <p style="color: #6b7280; padding: 20px; text-align: center;">No credits found for this actor.</p>
                 <?php endif; ?>
+                </div>
                 </div>
             </div>
             
@@ -433,5 +538,29 @@ try {
 })();
 </script>
 <?php endif; ?>
+<script>
+function showCreditsView(view) {
+    const categoryView = document.getElementById('credits-category-view');
+    const alphabeticalView = document.getElementById('credits-alphabetical-view');
+    const categoryBtn = document.getElementById('credits-category-btn');
+    const alphabeticalBtn = document.getElementById('credits-alphabetical-btn');
+    
+    if (view === 'category') {
+        categoryView.style.display = 'block';
+        alphabeticalView.style.display = 'none';
+        categoryBtn.style.background = '#4f46e5';
+        categoryBtn.style.color = 'white';
+        alphabeticalBtn.style.background = '#e5e7eb';
+        alphabeticalBtn.style.color = '#6b7280';
+    } else {
+        categoryView.style.display = 'none';
+        alphabeticalView.style.display = 'block';
+        categoryBtn.style.background = '#e5e7eb';
+        categoryBtn.style.color = '#6b7280';
+        alphabeticalBtn.style.background = '#4f46e5';
+        alphabeticalBtn.style.color = 'white';
+    }
+}
+</script>
 </div>
 

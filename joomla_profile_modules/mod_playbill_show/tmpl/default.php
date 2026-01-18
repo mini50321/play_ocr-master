@@ -45,6 +45,16 @@ if (empty($show_data['productions'])) {
 $latest_production = $show_data['productions'][0];
 $credits_by_category = ModPlaybillShowHelper::groupCreditsByCategory($latest_production['credits']);
 
+$all_credits = [];
+if (!empty($latest_production['credits']) && is_array($latest_production['credits'])) {
+    $all_credits = $latest_production['credits'];
+    usort($all_credits, function($a, $b) {
+        $nameA = isset($a['person']['name']) ? strtolower($a['person']['name']) : '';
+        $nameB = isset($b['person']['name']) ? strtolower($b['person']['name']) : '';
+        return strcmp($nameA, $nameB);
+    });
+}
+
 ?>
 <div class="playbill-show-module" style="margin: 20px 0; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
     <h2 class="playbill-title" style="font-size: 28px; font-weight: bold; margin-bottom: 15px; color: #1f2937;">
@@ -62,6 +72,13 @@ $credits_by_category = ModPlaybillShowHelper::groupCreditsByCategory($latest_pro
         </p>
     </div>
     
+    <?php if (!empty($credits_by_category) || !empty($all_credits)): ?>
+    <div style="margin-bottom: 20px; border-bottom: 2px solid #e5e7eb;">
+        <button onclick="showView('category')" id="view-category-btn" style="padding: 10px 20px; margin-right: 10px; background: #4f46e5; color: white; border: none; border-radius: 6px 6px 0 0; cursor: pointer; font-weight: 600; font-size: 14px;">By Category</button>
+        <button onclick="showView('alphabetical')" id="view-alphabetical-btn" style="padding: 10px 20px; background: #e5e7eb; color: #6b7280; border: none; border-radius: 6px 6px 0 0; cursor: pointer; font-weight: 600; font-size: 14px;">Alphabetical</button>
+    </div>
+    
+    <div id="category-view">
     <?php if (!empty($credits_by_category)): ?>
     <?php foreach ($credits_by_category as $category => $credits): ?>
     <div class="playbill-category" style="margin-bottom: 30px;">
@@ -103,8 +120,78 @@ $credits_by_category = ModPlaybillShowHelper::groupCreditsByCategory($latest_pro
         </ul>
     </div>
     <?php endforeach; ?>
+    <?php endif; ?>
+    </div>
+    
+    <div id="alphabetical-view" style="display: none;">
+    <?php if (!empty($all_credits)): ?>
+    <ul style="list-style: none; padding: 0; margin: 0;">
+        <?php foreach ($all_credits as $credit): ?>
+        <li style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="font-size: 16px; color: #1f2937;">
+                        <?php 
+                        $person_url = '';
+                        if (strpos($actor_profile_url, 'index.php') !== false) {
+                            if (strpos($actor_profile_url, '?') !== false) {
+                                $person_url = $actor_profile_url . '&id=' . $credit['person']['id'] . '&type=actor';
+                            } else {
+                                $person_url = $actor_profile_url . '?id=' . $credit['person']['id'] . '&type=actor';
+                            }
+                        } else {
+                            $person_url = rtrim($actor_profile_url, '/') . '/actor/' . $credit['person']['id'];
+                        }
+                        ?>
+                        <a href="<?php echo htmlspecialchars($person_url); ?>" style="color: #4f46e5; text-decoration: none;">
+                            <?php echo htmlspecialchars($credit['person']['name']); ?>
+                        </a>
+                    </strong>
+                    <?php if (!empty($credit['role'])): ?>
+                        <span style="color: #6b7280; margin-left: 8px;">- <?php echo htmlspecialchars($credit['role']); ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($credit['category'])): ?>
+                        <span style="color: #9ca3af; margin-left: 8px; font-size: 14px;">(<?php echo htmlspecialchars($credit['category']); ?>)</span>
+                    <?php endif; ?>
+                    <?php if ($credit['is_equity']): ?>
+                        <span style="color: #10b981; font-weight: 600; margin-left: 5px;">*</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+    <?php else: ?>
+    <p style="color: #6b7280; padding: 20px; text-align: center;">No credits found for this production.</p>
+    <?php endif; ?>
+    </div>
     <?php else: ?>
     <p style="color: #6b7280; padding: 20px; text-align: center;">No credits found for this production.</p>
     <?php endif; ?>
 </div>
+
+<script>
+function showView(view) {
+    const categoryView = document.getElementById('category-view');
+    const alphabeticalView = document.getElementById('alphabetical-view');
+    const categoryBtn = document.getElementById('view-category-btn');
+    const alphabeticalBtn = document.getElementById('view-alphabetical-btn');
+    
+    if (view === 'category') {
+        categoryView.style.display = 'block';
+        alphabeticalView.style.display = 'none';
+        categoryBtn.style.background = '#4f46e5';
+        categoryBtn.style.color = 'white';
+        alphabeticalBtn.style.background = '#e5e7eb';
+        alphabeticalBtn.style.color = '#6b7280';
+    } else {
+        categoryView.style.display = 'none';
+        alphabeticalView.style.display = 'block';
+        categoryBtn.style.background = '#e5e7eb';
+        categoryBtn.style.color = '#6b7280';
+        alphabeticalBtn.style.background = '#4f46e5';
+        alphabeticalBtn.style.color = 'white';
+    }
+}
+</script>
 
