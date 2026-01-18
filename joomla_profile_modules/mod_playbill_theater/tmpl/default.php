@@ -250,6 +250,8 @@ if (!$theater_data) {
             <?php endif; ?>
             <?php endforeach; ?>
             </div>
+            <?php endif; ?>
+            </div>
             
             <div id="alphabetical-view-<?php echo $production['id']; ?>" style="display: none;">
             <?php if (!empty($all_production_credits)): ?>
