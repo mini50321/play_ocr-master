@@ -1229,7 +1229,15 @@ def public_actor(id):
         return "Actor not found", 404
     
     actor_photo = None
-    if person.joomla_id:
+    
+    if person.photo:
+        photo_path = os.path.join('static', person.photo)
+        if os.path.exists(photo_path):
+            actor_photo = flask_url_for('static', filename=person.photo)
+            photo_mtime = os.path.getmtime(photo_path)
+            actor_photo += f'?v={int(photo_mtime)}'
+    
+    if not actor_photo and person.joomla_id:
         from joomla_actor_fetch import get_actor_from_joomla
         joomla_actor_data = get_actor_from_joomla(person.joomla_id)
         if joomla_actor_data and joomla_actor_data.get('photo'):
@@ -1253,9 +1261,6 @@ def public_actor(id):
         article_photo = find_actor_photo_in_articles(person.name)
         if article_photo:
             actor_photo = article_photo
-    
-    if not actor_photo and person.photo:
-        actor_photo = flask_url_for('static', filename=person.photo)
     
     normalized_name = normalize_name(person.name)
     if person.name != normalized_name:

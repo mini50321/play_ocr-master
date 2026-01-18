@@ -10,7 +10,18 @@ def joomla_api_actor(id):
         return jsonify({"error": "Actor not found"}), 404
     
     actor_photo = None
-    if person.joomla_id:
+    
+    if person.photo:
+        from flask import url_for
+        import os
+        photo_path = os.path.join('static', person.photo)
+        if os.path.exists(photo_path):
+            actor_photo = url_for('static', filename=person.photo, _external=True)
+            import time
+            photo_mtime = os.path.getmtime(photo_path)
+            actor_photo += f'?v={int(photo_mtime)}'
+    
+    if not actor_photo and person.joomla_id:
         from joomla_actor_fetch import get_actor_from_joomla
         joomla_actor_data = get_actor_from_joomla(person.joomla_id)
         if joomla_actor_data and joomla_actor_data.get('photo'):
@@ -34,10 +45,6 @@ def joomla_api_actor(id):
         article_photo = find_actor_photo_in_articles(person.name)
         if article_photo:
             actor_photo = article_photo
-    
-    if not actor_photo and person.photo:
-        from flask import url_for
-        actor_photo = url_for('static', filename=person.photo, _external=True)
     
     credits = db.session.query(Credit, Production, Show, Theater).join(
         Production, Credit.production_id == Production.id
