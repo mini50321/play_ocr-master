@@ -84,13 +84,23 @@ $search_url = $results_page_id
             </div>
             <div style="padding: 24px; background: #ffffff;">
     <div class="playbill-search-results" style="margin-top: 20px;">
-        <?php if (!empty($results['actors'])): ?>
+        <?php 
+        $filtered_actors = [];
+        if (!empty($results['actors'])) {
+            foreach ($results['actors'] as $actor) {
+                $credits_count = (int)($actor['credits_count'] ?? 0);
+                if ($credits_count > 0) {
+                    $filtered_actors[] = $actor;
+                }
+            }
+        }
+        if (!empty($filtered_actors)): ?>
         <div class="playbill-results-section" style="margin-bottom: 30px;">
             <h3 style="font-size: 22px; font-weight: 600; margin-bottom: 20px; color: #1f2937; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-                Actors (<?php echo count($results['actors']); ?>)
+                Actors (<?php echo count($filtered_actors); ?>)
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
-                <?php foreach ($results['actors'] as $actor): ?>
+                <?php foreach ($filtered_actors as $actor): ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
                         if (strpos($actor_profile_url, 'index.php') !== false || strpos($actor_profile_url, '?') !== false) {
@@ -114,19 +124,33 @@ $search_url = $results_page_id
         </div>
         <?php endif; ?>
         
-        <?php if (!empty($results['shows'])): ?>
+        <?php 
+        $filtered_shows = [];
+        if (!empty($results['shows'])) {
+            foreach ($results['shows'] as $show) {
+                $productions_count = (int)($show['productions_count'] ?? 0);
+                if ($productions_count > 0) {
+                    $filtered_shows[] = $show;
+                }
+            }
+        }
+        if (!empty($filtered_shows)): ?>
         <div class="playbill-results-section" style="margin-bottom: 30px;">
             <h3 style="font-size: 22px; font-weight: 600; margin-bottom: 20px; color: #1f2937; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-                Shows (<?php echo count($results['shows']); ?>)
+                Shows (<?php echo count($filtered_shows); ?>)
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
-                <?php foreach ($results['shows'] as $show): ?>
+                <?php foreach ($filtered_shows as $show): ?>
                 <?php 
                     if (!isset($show['id']) || empty($show['id'])) {
                         continue;
                     }
                     $show_id = (int)$show['id'];
                     if ($show_id <= 0) {
+                        continue;
+                    }
+                    $productions_count = (int)($show['productions_count'] ?? 0);
+                    if ($productions_count <= 0) {
                         continue;
                     }
                     if (strpos($show_profile_url, 'index.php') !== false || strpos($show_profile_url, '?') !== false) {
@@ -144,7 +168,7 @@ $search_url = $results_page_id
                        title="Playbill Show ID: <?php echo $show_id; ?>">
                         <?php echo htmlspecialchars($show['title'] ?? 'Unknown Show'); ?>
                         <span style="color: #6b7280; font-size: 14px; margin-left: 10px; font-weight: normal;">
-                            (<?php echo (int)($show['productions_count'] ?? 0); ?> production(s))
+                            (<?php echo $productions_count; ?> production(s))
                         </span>
                     </a>
                 </li>
@@ -153,13 +177,29 @@ $search_url = $results_page_id
         </div>
         <?php endif; ?>
         
-        <?php if (!empty($results['theaters'])): ?>
+        <?php 
+        $filtered_theaters = [];
+        if (!empty($results['theaters'])) {
+            foreach ($results['theaters'] as $theater) {
+                $productions_count = (int)($theater['productions_count'] ?? 0);
+                if ($productions_count > 0) {
+                    $filtered_theaters[] = $theater;
+                }
+            }
+        }
+        if (!empty($filtered_theaters)): ?>
         <div class="playbill-results-section" style="margin-bottom: 30px;">
             <h3 style="font-size: 22px; font-weight: 600; margin-bottom: 20px; color: #1f2937; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-                Theaters (<?php echo count($results['theaters']); ?>)
+                Theaters (<?php echo count($filtered_theaters); ?>)
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
-                <?php foreach ($results['theaters'] as $theater): ?>
+                <?php foreach ($filtered_theaters as $theater): ?>
+                <?php 
+                    $theater_productions_count = (int)($theater['productions_count'] ?? 0);
+                    if ($theater_productions_count <= 0) {
+                        continue;
+                    }
+                ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
                         if (strpos($theater_profile_url, 'index.php') !== false || strpos($theater_profile_url, '?') !== false) {
@@ -174,7 +214,7 @@ $search_url = $results_page_id
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">
                         <?php echo htmlspecialchars($theater['name']); ?>
                         <span style="color: #6b7280; font-size: 14px; margin-left: 10px; font-weight: normal;">
-                            (<?php echo (int)$theater['productions_count']; ?> production(s))
+                            (<?php echo $theater_productions_count; ?> production(s))
                         </span>
                     </a>
                 </li>
@@ -183,7 +223,7 @@ $search_url = $results_page_id
         </div>
         <?php endif; ?>
         
-        <?php if (empty($results['actors']) && empty($results['shows']) && empty($results['theaters'])): ?>
+        <?php if (empty($filtered_actors) && empty($filtered_shows) && empty($filtered_theaters)): ?>
         <div style="padding: 40px; text-align: center; color: #6b7280;">
             <p style="font-size: 18px;">No results found for "<?php echo htmlspecialchars($current_query); ?>"</p>
         </div>

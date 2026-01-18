@@ -194,4 +194,51 @@ function showView(view) {
     }
 }
 </script>
+<style>
+.playbill-show-module ~ .item-page,
+.playbill-show-module ~ article,
+.playbill-show-module ~ .item-page,
+.playbill-show-module ~ article {
+    display: none !important;
+}
+body.item-view .item-page:has(+ .playbill-show-module),
+body.item-view article:has(+ .playbill-show-module) {
+    display: none !important;
+}
+</style>
+<script>
+(function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        const moduleContainer = document.querySelector('.playbill-show-module');
+        if (moduleContainer) {
+            const articleContent = moduleContainer.closest('.item-page') || 
+                                 moduleContainer.closest('article') ||
+                                 document.querySelector('.item-page') ||
+                                 document.querySelector('article');
+            if (articleContent && articleContent !== moduleContainer && !articleContent.contains(moduleContainer)) {
+                articleContent.style.display = 'none';
+            }
+            
+            const nextSibling = moduleContainer.nextElementSibling;
+            if (nextSibling && (nextSibling.classList.contains('item-page') || nextSibling.tagName === 'ARTICLE')) {
+                nextSibling.style.display = 'none';
+            }
+            
+            const parent = moduleContainer.parentElement;
+            if (parent) {
+                const siblings = Array.from(parent.children);
+                const moduleIndex = siblings.indexOf(moduleContainer);
+                siblings.slice(moduleIndex + 1).forEach(function(sibling) {
+                    if (sibling.classList.contains('item-page') || 
+                        sibling.classList.contains('article-content') ||
+                        sibling.tagName === 'ARTICLE' ||
+                        (sibling.classList.contains('content') && !sibling.contains(moduleContainer))) {
+                        sibling.style.display = 'none';
+                    }
+                });
+            }
+        }
+    });
+})();
+</script>
 
