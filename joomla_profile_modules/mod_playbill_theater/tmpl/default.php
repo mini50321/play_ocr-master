@@ -11,10 +11,14 @@ $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/pl
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
 $profile_base_url = $params->get('profile_base_url', $public_base_url);
 $actor_profile_url = $params->get('actor_profile_url', '');
+$show_profile_url = $params->get('show_profile_url', '');
 $module_enabled = $params->get('module_enabled', 1);
 
 if (empty($actor_profile_url)) {
     $actor_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
+}
+if (empty($show_profile_url)) {
+    $show_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
 }
 
 if (!$module_enabled || empty($theater_id)) {
@@ -155,11 +159,14 @@ if (!$theater_data) {
         <h4 style="font-size: 20px; font-weight: 600; margin-bottom: 15px; color: #4b5563;">
             <?php 
             $show_url = '';
-            if (strpos($profile_base_url, 'index.php') !== false || strpos($profile_base_url, '?') !== false) {
-                $separator = (strpos($profile_base_url, '?') !== false) ? '&' : '?';
-                $show_url = $profile_base_url . $separator . 'id=' . $show_item['show']['id'] . '&type=show';
+            if (strpos($show_profile_url, 'index.php') !== false) {
+                if (strpos($show_profile_url, '?') !== false) {
+                    $show_url = $show_profile_url . '&id=' . $show_item['show']['id'] . '&type=show';
+                } else {
+                    $show_url = $show_profile_url . '?id=' . $show_item['show']['id'] . '&type=show';
+                }
             } else {
-                $show_url = $profile_base_url . '/show/' . $show_item['show']['id'];
+                $show_url = rtrim($show_profile_url, '/') . '/show/' . $show_item['show']['id'];
             }
             ?>
             <a href="<?php echo htmlspecialchars($show_url); ?>" style="color: #4f46e5; text-decoration: none;">

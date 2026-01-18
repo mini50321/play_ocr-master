@@ -45,7 +45,16 @@ try {
 
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
+$show_profile_url = $params->get('show_profile_url', '');
+$theater_profile_url = $params->get('theater_profile_url', '');
 $module_enabled = $params->get('module_enabled', 1);
+
+if (empty($show_profile_url)) {
+    $show_profile_url = $public_base_url;
+}
+if (empty($theater_profile_url)) {
+    $theater_profile_url = $public_base_url;
+}
 
 echo '<!-- Playbill Actor Module START: Actor ID = ' . htmlspecialchars($actor_id) . ' -->';
 
@@ -188,7 +197,19 @@ try {
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                     <?php if ($show && isset($show['id']) && isset($show['title'])): ?>
-                                    <a href="<?php echo htmlspecialchars($public_base_url . '/show/' . (int)$show['id']); ?>" 
+                                    <?php
+                                    $show_url = '';
+                                    if (strpos($show_profile_url, 'index.php') !== false) {
+                                        if (strpos($show_profile_url, '?') !== false) {
+                                            $show_url = $show_profile_url . '&id=' . (int)$show['id'] . '&type=show';
+                                        } else {
+                                            $show_url = $show_profile_url . '?id=' . (int)$show['id'] . '&type=show';
+                                        }
+                                    } else {
+                                        $show_url = rtrim($show_profile_url, '/') . '/show/' . (int)$show['id'];
+                                    }
+                                    ?>
+                                    <a href="<?php echo htmlspecialchars($show_url); ?>" 
                                        style="font-weight: 600; color: #4f46e5; text-decoration: none; font-size: 16px;"
                                        onmouseover="this.style.color='#4338ca'"
                                        onmouseout="this.style.color='#4f46e5'">
@@ -209,7 +230,19 @@ try {
                                     <span style="font-weight: 500;"><?php echo !empty($credit['role']) && is_string($credit['role']) ? htmlspecialchars($credit['role']) : htmlspecialchars($category); ?></span>
                                     <span style="margin: 0 8px;">•</span>
                                     <?php if ($theater && isset($theater['id']) && isset($theater['name'])): ?>
-                                    <a href="<?php echo htmlspecialchars($public_base_url . '/theater/' . (int)$theater['id']); ?>" 
+                                    <?php
+                                    $theater_url = '';
+                                    if (strpos($theater_profile_url, 'index.php') !== false) {
+                                        if (strpos($theater_profile_url, '?') !== false) {
+                                            $theater_url = $theater_profile_url . '&id=' . (int)$theater['id'] . '&type=theater';
+                                        } else {
+                                            $theater_url = $theater_profile_url . '?id=' . (int)$theater['id'] . '&type=theater';
+                                        }
+                                    } else {
+                                        $theater_url = rtrim($theater_profile_url, '/') . '/theater/' . (int)$theater['id'];
+                                    }
+                                    ?>
+                                    <a href="<?php echo htmlspecialchars($theater_url); ?>" 
                                        style="color: #4f46e5; text-decoration: none;"
                                        onmouseover="this.style.textDecoration='underline'"
                                        onmouseout="this.style.textDecoration='none'">
@@ -309,7 +342,19 @@ try {
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         <?php foreach ($actor_data['theaters'] as $theater): ?>
                         <?php if (isset($theater['id']) && isset($theater['name'])): ?>
-                        <a href="<?php echo htmlspecialchars($public_base_url . '/theater/' . (int)$theater['id']); ?>" 
+                        <?php
+                        $theater_url = '';
+                        if (strpos($theater_profile_url, 'index.php') !== false) {
+                            if (strpos($theater_profile_url, '?') !== false) {
+                                $theater_url = $theater_profile_url . '&id=' . (int)$theater['id'] . '&type=theater';
+                            } else {
+                                $theater_url = $theater_profile_url . '?id=' . (int)$theater['id'] . '&type=theater';
+                            }
+                        } else {
+                            $theater_url = rtrim($theater_profile_url, '/') . '/theater/' . (int)$theater['id'];
+                        }
+                        ?>
+                        <a href="<?php echo htmlspecialchars($theater_url); ?>" 
                            style="display: block; color: #4f46e5; text-decoration: none; font-size: 14px; padding: 4px 0;"
                            onmouseover="this.style.textDecoration='underline'"
                            onmouseout="this.style.textDecoration='none'">
