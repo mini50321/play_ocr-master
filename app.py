@@ -1372,17 +1372,23 @@ def public_show(id):
     for prod in productions:
         credits = Credit.query.filter_by(production_id=prod.id).all()
         credits_by_category = {}
+        all_credits_sorted = []
         
         for credit in credits:
             cat = credit.category
             if cat not in credits_by_category:
                 credits_by_category[cat] = []
-            credits_by_category[cat].append({
+            credit_data = {
                 'person_name': credit.person.name,
                 'person_id': credit.person.id,
                 'role': credit.role,
-                'is_equity': credit.is_equity
-            })
+                'is_equity': credit.is_equity,
+                'category': cat
+            }
+            credits_by_category[cat].append(credit_data)
+            all_credits_sorted.append(credit_data)
+        
+        all_credits_sorted.sort(key=lambda x: x['person_name'].lower())
         
         theater = prod.theater
         if not theater.joomla_id:
@@ -1400,7 +1406,8 @@ def public_show(id):
         all_credits_by_production[prod.id] = {
             'production': prod,
             'theater': theater_wrapper,
-            'credits': credits_by_category
+            'credits': credits_by_category,
+            'all_credits_sorted': all_credits_sorted
         }
     
     return render_template("public_show.html", 

@@ -35,10 +35,21 @@
                      class="h-24 w-auto object-cover rounded">
                 {% endif %}
             </div>
-            <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Credits</h3>
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-lg font-semibold text-gray-800">Credits</h3>
+                <div class="flex gap-2">
+                    <button type="button" onclick="showCreditsView('category-{{ prod_id }}')" id="view-category-btn-{{ prod_id }}" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        By Category
+                    </button>
+                    <button type="button" onclick="showCreditsView('alphabetical-{{ prod_id }}')" id="view-alphabetical-btn-{{ prod_id }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        Alphabetical
+                    </button>
+                </div>
+            </div>
         </div>
         
         <div class="px-6 py-4">
+            <div id="category-view-{{ prod_id }}">
             {% for category, credits_list in prod_data.credits.items() %}
             <div class="mb-6">
                 <div class="flex items-center gap-2 mb-3">
@@ -121,6 +132,30 @@
                 </div>
             </div>
             {% endfor %}
+            </div>
+            
+            <div id="alphabetical-view-{{ prod_id }}" style="display: none;">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for credit in prod_data.all_credits_sorted %}
+                    <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <a href="{{ url_for('public_actor', id=credit.person_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                            {{ credit.person_name }}
+                        </a>
+                        {% if credit.is_equity %}
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            *
+                        </span>
+                        {% endif %}
+                        {% if credit.role %}
+                        <span class="text-gray-500 text-sm break-words">({{ credit.role }})</span>
+                        {% endif %}
+                        {% if credit.category %}
+                        <span class="text-gray-400 text-xs break-words">[{{ credit.category }}]</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -185,6 +220,41 @@
         }
     }
     {% endif %}
+
+    function showCreditsView(view) {
+        const parts = view.split('-');
+        const viewType = parts[0];
+        const prodId = parts.slice(1).join('-');
+        
+        const categoryView = document.getElementById('category-view-' + prodId);
+        const alphabeticalView = document.getElementById('alphabetical-view-' + prodId);
+        const categoryBtn = document.getElementById('view-category-btn-' + prodId);
+        const alphabeticalBtn = document.getElementById('view-alphabetical-btn-' + prodId);
+        
+        if (viewType === 'category') {
+            if (categoryView) categoryView.style.display = 'block';
+            if (alphabeticalView) alphabeticalView.style.display = 'none';
+            if (categoryBtn) {
+                categoryBtn.classList.remove('bg-gray-200', 'text-gray-700');
+                categoryBtn.classList.add('bg-indigo-600', 'text-white');
+            }
+            if (alphabeticalBtn) {
+                alphabeticalBtn.classList.remove('bg-indigo-600', 'text-white');
+                alphabeticalBtn.classList.add('bg-gray-200', 'text-gray-700');
+            }
+        } else {
+            if (categoryView) categoryView.style.display = 'none';
+            if (alphabeticalView) alphabeticalView.style.display = 'block';
+            if (categoryBtn) {
+                categoryBtn.classList.remove('bg-indigo-600', 'text-white');
+                categoryBtn.classList.add('bg-gray-200', 'text-gray-700');
+            }
+            if (alphabeticalBtn) {
+                alphabeticalBtn.classList.remove('bg-gray-200', 'text-gray-700');
+                alphabeticalBtn.classList.add('bg-indigo-600', 'text-white');
+            }
+        }
+    }
 </script>
 {% endblock %}
 
