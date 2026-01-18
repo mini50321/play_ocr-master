@@ -108,8 +108,17 @@
         </div>
 
         <div>
-            <h4 class="text-md font-bold text-gray-900 mb-4 border-b pb-2">Credits (Cast, Creative, Crew, Musicians)
-            </h4>
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h4 class="text-md font-bold text-gray-900">Credits (Cast, Creative, Crew, Musicians)</h4>
+                <div class="flex gap-2">
+                    <button type="button" onclick="showCreditsView('category')" id="credits-category-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        By Category
+                    </button>
+                    <button type="button" onclick="showCreditsView('alphabetical')" id="credits-alphabetical-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        Alphabetical
+                    </button>
+                </div>
+            </div>
 
             <datalist id="role-suggestions">
                 <option value="Dance Captain">
@@ -139,9 +148,9 @@
                                 Action</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-200" id="credits-tbody">
                         {% for member in data.all_credits %}
-                        <tr>
+                        <tr data-category="{{ member.cat }}" data-actor-name="{{ member.actor|lower }}">
                             <td class="px-3 py-4">
                                 <select
                                     class="category-input block w-full py-2 px-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
@@ -222,6 +231,8 @@
     function addRow() {
         const tbody = document.querySelector('#castTable tbody');
         const row = document.createElement('tr');
+        row.setAttribute('data-category', 'Cast');
+        row.setAttribute('data-actor-name', '');
         row.innerHTML = `
             <td class="px-3 py-4">
                 <select class="category-input block w-full py-2 px-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
@@ -527,6 +538,81 @@
         youtubeInput.addEventListener('input', updateVideoPreview);
         updateVideoPreview();
     }
+
+    let currentCreditsView = 'category';
+
+    function showCreditsView(view) {
+        currentCreditsView = view;
+        const tbody = document.getElementById('credits-tbody');
+        const categoryBtn = document.getElementById('credits-category-btn');
+        const alphabeticalBtn = document.getElementById('credits-alphabetical-btn');
+        
+        if (!tbody) return;
+        
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        if (view === 'alphabetical') {
+            rows.sort((a, b) => {
+                const nameA = (a.getAttribute('data-actor-name') || '').trim();
+                const nameB = (b.getAttribute('data-actor-name') || '').trim();
+                return nameA.localeCompare(nameB);
+            });
+            
+            rows.forEach(row => tbody.appendChild(row));
+            
+            categoryBtn.classList.remove('bg-indigo-600', 'text-white');
+            categoryBtn.classList.add('bg-gray-200', 'text-gray-700');
+            alphabeticalBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            alphabeticalBtn.classList.add('bg-indigo-600', 'text-white');
+        } else {
+            const originalOrder = [];
+            {% for member in data.all_credits %}
+            originalOrder.push('{{ member.actor|lower }}');
+            {% endfor %}
+            
+            rows.sort((a, b) => {
+                const nameA = a.getAttribute('data-actor-name') || '';
+                const nameB = b.getAttribute('data-actor-name') || '';
+                const indexA = originalOrder.indexOf(nameA);
+                const indexB = originalOrder.indexOf(nameB);
+                if (indexA !== -1 && indexB !== -1) {
+                    return indexA - indexB;
+                }
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                return nameA.localeCompare(nameB);
+            });
+            
+            rows.forEach(row => tbody.appendChild(row));
+            
+            categoryBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            categoryBtn.classList.add('bg-indigo-600', 'text-white');
+            alphabeticalBtn.classList.remove('bg-indigo-600', 'text-white');
+            alphabeticalBtn.classList.add('bg-gray-200', 'text-gray-700');
+        }
+    }
+
+    function updateActorNameAttribute(row) {
+        const actorInput = row.querySelector('.actor-input');
+        if (actorInput) {
+            const actorName = actorInput.value.trim().toLowerCase();
+            row.setAttribute('data-actor-name', actorName);
+            if (currentCreditsView === 'alphabetical') {
+                showCreditsView('alphabetical');
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const tbody = document.getElementById('credits-tbody');
+        if (tbody) {
+            tbody.addEventListener('input', function(e) {
+                if (e.target.classList.contains('actor-input')) {
+                    updateActorNameAttribute(e.target.closest('tr'));
+                }
+            });
+        }
+    });
 </script>
 
 <div id="notificationModal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
