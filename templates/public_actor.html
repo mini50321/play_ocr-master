@@ -24,29 +24,33 @@
                 <input type="file" id="photo-upload" accept="image/*" class="hidden">
                 {% endif %}
             </div>
-            <div class="flex-1">
-                <h1 class="text-3xl font-bold text-white">{{ person.name }}</h1>
-                {% if person.disciplines %}
-                <p class="text-indigo-100 mt-2">{{ person.disciplines }}</p>
-                {% endif %}
-                <div class="mt-6 grid grid-cols-3 gap-6">
-                    <div>
-                        <span class="text-sm text-indigo-200">Total Credits</span>
-                        <p class="text-2xl font-bold text-white mt-1">{{ total_credits }}</p>
-                    </div>
-                    <div>
-                        <span class="text-sm text-indigo-200">Disciplines</span>
-                        <p class="text-2xl font-bold text-white mt-1">{{ disciplines_count }}</p>
-                        {% if disciplines_list %}
-                        <p class="text-xs text-indigo-100 mt-1">{{ disciplines_list|join(', ') }}</p>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <span class="text-sm text-indigo-200">Theaters</span>
-                        <p class="text-2xl font-bold text-white mt-1">{{ theaters|length }}</p>
-                        {% if theaters %}
-                        <p class="text-xs text-indigo-100 mt-1">{{ theaters|map(attribute='name')|join(', ') }}</p>
-                        {% endif %}
+            <div class="flex-1 flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">{{ person.name }}</h1>
+                    {% if person.disciplines %}
+                    <p class="text-indigo-100 mt-2">{{ person.disciplines }}</p>
+                    {% endif %}
+                </div>
+                <div class="mt-6 lg:mt-0 lg:ml-8" style="margin-right: 180px;">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-sm text-indigo-200">Total Credits</span>
+                            <p class="text-2xl font-bold text-white mt-1">{{ total_credits }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm text-indigo-200">Disciplines</span>
+                            <p class="text-2xl font-bold text-white mt-1">{{ disciplines_count }}</p>
+                            {% if disciplines_list %}
+                            <p class="text-xs text-indigo-100 mt-1">{{ disciplines_list|join(', ') }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <span class="text-sm text-indigo-200">Theaters</span>
+                            <p class="text-2xl font-bold text-white mt-1">{{ theaters|length }}</p>
+                            {% if theaters %}
+                            <p class="text-xs text-indigo-100 mt-1">{{ theaters|map(attribute='name')|join(', ') }}</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -55,8 +59,8 @@
 </div>
 
 <div class="space-y-6">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 bg-white shadow sm:rounded-lg overflow-hidden">
+    <div class="grid grid-cols-1 gap-6">
+        <div class="bg-white shadow sm:rounded-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h2 class="text-xl font-semibold text-gray-900">Credits</h2>
             </div>
