@@ -38,9 +38,17 @@ if (!empty($current_query)) {
 }
 
 $current_uri = Uri::getInstance();
-$search_url = $results_page_id 
-    ? 'index.php?Itemid=' . $results_page_id 
-    : $current_uri->toString(['path', 'query']);
+$is_profile_page = $input->getInt('id', 0) > 0 && in_array($input->getString('type', ''), ['actor', 'show', 'theater']);
+
+if ($results_page_id) {
+    $search_url = 'index.php?Itemid=' . $results_page_id;
+} elseif ($is_profile_page) {
+    $menu = $app->getMenu();
+    $home = $menu->getDefault();
+    $search_url = $home ? 'index.php?Itemid=' . $home->id : 'index.php';
+} else {
+    $search_url = $current_uri->toString(['path', 'query']);
+}
 
 ?>
 <div class="playbill-search-module" style="margin: 20px 0;">

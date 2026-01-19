@@ -41,7 +41,17 @@ try {
     
     $app = Factory::getApplication();
     $input = $app->input;
-    $actor_id = $input->getInt('id', $params->get('actor_id', 0));
+    $url_type = $input->getString('type', '');
+    $url_id = $input->getInt('id', 0);
+    $has_url_params = $input->get('playbill_q', null) !== null || $input->get('playbill_type', null) !== null;
+    
+    if ($url_type === 'actor' && $url_id > 0) {
+        $actor_id = $url_id;
+    } elseif (!$has_url_params) {
+        $actor_id = $params->get('actor_id', 0);
+    } else {
+        $actor_id = 0;
+    }
 
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
@@ -65,8 +75,15 @@ if (!$module_enabled) {
 }
 
 if (empty($actor_id)) {
+    $playbill_q = $input->getString('playbill_q', '');
+    if (!empty($playbill_q)) {
+        echo '<!-- Playbill Actor Module: search request with no actor id, module hidden -->';
+        echo '</div>';
+        return;
+    }
     echo '<div class="playbill-error" style="padding: 10px; background: #fee; border: 1px solid #fcc; color: #c00; border-radius: 4px; margin: 10px 0;">';
-    echo 'Playbill Actor Module: No Actor ID provided. Please provide ?id=XXX in the URL.';
+    echo '<strong>Playbill Actor Module Error</strong><br>';
+    echo 'No Actor ID provided. Please provide ?id=XXX&type=actor in the URL.';
     echo '</div>';
     echo '</div>';
     return;
