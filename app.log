@@ -12612,3 +12612,174 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 
 2026-01-08 05:06:32,022 - __main__ - ERROR - ================================================================================
 2026-01-08 05:06:32,022 - werkzeug - INFO - 127.0.0.1 - - [08/Jan/2026 05:06:32] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-01-19 09:59:13,584 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-19 09:59:13,585 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-01-19 09:59:22,835 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:22] "[32mGET / HTTP/1.1[0m" 302 -
+2026-01-19 09:59:22,901 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:22] "GET /login?next=/ HTTP/1.1" 200 -
+2026-01-19 09:59:27,335 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:27] "POST /login HTTP/1.1" 200 -
+2026-01-19 09:59:37,108 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:37] "POST /login HTTP/1.1" 200 -
+2026-01-19 09:59:39,897 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:39] "GET /public/search HTTP/1.1" 200 -
+2026-01-19 09:59:41,469 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:41] "GET /public/search HTTP/1.1" 200 -
+2026-01-19 09:59:43,626 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:43] "GET /public/search HTTP/1.1" 200 -
+2026-01-19 09:59:44,582 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:44] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -
+2026-01-19 09:59:44,638 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:44] "GET /public/search HTTP/1.1" 200 -
+2026-01-19 09:59:44,780 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 09:59:44] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -
+2026-01-19 10:01:56,707 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:01:56] "[32mGET / HTTP/1.1[0m" 302 -
+2026-01-19 10:01:56,713 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:01:56] "GET /login?next=/ HTTP/1.1" 200 -
+2026-01-19 10:02:06,339 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:06] "POST /login HTTP/1.1" 200 -
+2026-01-19 10:02:18,073 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:18] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -
+2026-01-19 10:02:18,999 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:18] "[32mPOST /login HTTP/1.1[0m" 302 -
+2026-01-19 10:02:19,016 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:19] "GET /dashboard HTTP/1.1" 200 -
+2026-01-19 10:02:19,195 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:19] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -
+2026-01-19 10:02:23,657 - __main__ - ERROR - ================================================================================
+2026-01-19 10:02:23,658 - __main__ - ERROR - UNHANDLED EXCEPTION CAUGHT BY FLASK ERROR HANDLER
+2026-01-19 10:02:23,658 - __main__ - ERROR - Exception type: OperationalError
+2026-01-19 10:02:23,658 - __main__ - ERROR - Exception message: (sqlite3.OperationalError) no such column: person.joomla_id
+[SQL: SELECT person.id AS person_id, person.name AS person_name, person.disciplines AS person_disciplines, person.photo AS person_photo, person.joomla_id AS person_joomla_id 
+FROM person 
+WHERE person.id = ?]
+[parameters: (1,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-01-19 10:02:23,727 - __main__ - ERROR - Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: person.joomla_id
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\my project\flask project\12-25\play_ocr-master\app.py", line 1382, in public_show
+    'person_name': credit.person.name,
+                   ^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 569, in __get__
+    return self.impl.get(state, dict_)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 1096, in get
+    value = self._fire_loader_callables(state, key, passive)
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\attributes.py", line 1131, in _fire_loader_callables
+    return self.callable_(state, passive)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\strategies.py", line 978, in _load_for_state
+    return self._emit_lazyload(
+           ~~~~~~~~~~~~~~~~~~~^
+        session,
+        ^^^^^^^^
+    ...<7 lines>...
+        execution_options,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\strategies.py", line 1079, in _emit_lazyload
+    return loading.load_on_pk_identity(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        session,
+        ^^^^^^^^
+    ...<3 lines>...
+        execution_options=execution_options,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\loading.py", line 695, in load_on_pk_identity
+    session.execute(
+    ~~~~~~~~~~~~~~~^
+        q,
+        ^^
+    ...<2 lines>...
+        bind_arguments=bind_arguments,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        conn,
+        ^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+        statement, params or {}, execution_options=execution_options
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: person.joomla_id
+[SQL: SELECT person.id AS person_id, person.name AS person_name, person.disciplines AS person_disciplines, person.photo AS person_photo, person.joomla_id AS person_joomla_id 
+FROM person 
+WHERE person.id = ?]
+[parameters: (1,)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2026-01-19 10:02:23,738 - __main__ - ERROR - ================================================================================
+2026-01-19 10:02:23,739 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:23] "[35m[1mGET /public/show/6 HTTP/1.1[0m" 500 -
+2026-01-19 10:02:23,830 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:23] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -
+2026-01-19 10:02:28,168 - werkzeug - INFO - 127.0.0.1 - - [19/Jan/2026 10:02:28] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 204 -
