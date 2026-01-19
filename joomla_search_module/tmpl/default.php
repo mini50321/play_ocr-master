@@ -113,9 +113,10 @@ if ($results_page_id) {
                     <a href="<?php 
                         if (strpos($actor_profile_url, 'index.php') !== false || strpos($actor_profile_url, '?') !== false) {
                             $separator = (strpos($actor_profile_url, '?') !== false) ? '&' : '?';
-                            echo htmlspecialchars($actor_profile_url . $separator . 'id=' . $actor['id'] . '&type=actor');
+                            $url = $actor_profile_url . $separator . 'id=' . (int)$actor['id'] . '&type=actor';
+                            echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
                         } else {
-                            echo htmlspecialchars($actor_profile_url . '/actor/' . $actor['id']);
+                            echo htmlspecialchars($actor_profile_url . '/actor/' . (int)$actor['id'], ENT_QUOTES, 'UTF-8');
                         }
                     ?>" 
                        target="_blank" 

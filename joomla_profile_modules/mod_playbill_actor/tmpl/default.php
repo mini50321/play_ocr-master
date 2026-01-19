@@ -45,7 +45,15 @@ try {
     $url_id = $input->getInt('id', 0);
     $has_url_params = $input->get('playbill_q', null) !== null || $input->get('playbill_type', null) !== null;
     
+    $raw_id = $input->get('id', null, 'raw');
+    $all_get_params = $input->get->getArray();
+    
+    echo '<!-- DEBUG: url_type=' . htmlspecialchars($url_type) . ', url_id=' . htmlspecialchars($url_id) . ', raw_id=' . htmlspecialchars($raw_id ?? 'null') . ' -->';
+    echo '<!-- DEBUG: All GET params: ' . htmlspecialchars(json_encode($all_get_params)) . ' -->';
+    
     if ($url_type === 'actor' && $url_id > 0) {
+        $actor_id = $url_id;
+    } elseif ($url_id > 0 && empty($url_type) && !$has_url_params) {
         $actor_id = $url_id;
     } elseif (!$has_url_params) {
         $actor_id = $params->get('actor_id', 0);
