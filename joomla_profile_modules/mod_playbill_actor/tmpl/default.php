@@ -17,8 +17,8 @@ echo '<style>
 }
 @media (min-width: 1024px) {
     .playbill-actor-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
+        display: flex;
+        flex-direction: column;
         gap: 24px;
     }
     .playbill-theaters-grid {
@@ -155,15 +155,61 @@ try {
                     </div>
                     <?php endif; ?>
                 </div>
-                <div style="flex: 1;">
-                    <h1 style="font-size: 30px; font-weight: bold; color: white; margin: 0 0 8px 0;">
-                        <?php echo htmlspecialchars($actor_data['name']); ?>
-                    </h1>
-                    <?php if (!empty($actor_data['disciplines'])): ?>
-                    <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
-                        <?php echo htmlspecialchars($actor_data['disciplines']); ?>
-                    </p>
-                    <?php endif; ?>
+                <div style="flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h1 style="font-size: 30px; font-weight: bold; color: white; margin: 0 0 8px 0;">
+                            <?php echo htmlspecialchars($actor_data['name']); ?>
+                        </h1>
+                        <?php if (!empty($actor_data['disciplines'])): ?>
+                        <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
+                            <?php echo htmlspecialchars($actor_data['disciplines']); ?>
+                        </p>
+                        <?php endif; ?>
+                    </div>
+                    <div style="margin-right: 180px;">
+                        <div style="display: flex; flex-direction: column; gap: 16px;">
+                            <div>
+                                <span style="display: block; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Total Credits</span>
+                                <p style="font-size: 24px; font-weight: bold; color: white; margin: 0;">
+                                    <?php echo isset($actor_data['total_credits']) ? (int)$actor_data['total_credits'] : count($actor_data['credits'] ?? []); ?>
+                                </p>
+                            </div>
+                            <?php if (!empty($actor_data['disciplines'])): ?>
+                            <div>
+                                <span style="display: block; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Disciplines</span>
+                                <p style="font-size: 24px; font-weight: bold; color: white; margin: 0 0 4px 0;">
+                                    <?php 
+                                        if (isset($actor_data['disciplines_count'])) {
+                                            echo (int)$actor_data['disciplines_count'];
+                                        } else {
+                                            $disciplines_array = explode(',', $actor_data['disciplines']);
+                                            echo count(array_filter(array_map('trim', $disciplines_array)));
+                                        }
+                                    ?>
+                                </p>
+                                <p style="font-size: 14px; color: rgba(255,255,255,0.9); margin: 0;">
+                                    <?php echo htmlspecialchars($actor_data['disciplines']); ?>
+                                </p>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($actor_data['theaters']) && is_array($actor_data['theaters'])): ?>
+                            <div>
+                                <span style="display: block; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Theaters</span>
+                                <p style="font-size: 24px; font-weight: bold; color: white; margin: 0 0 4px 0;">
+                                    <?php echo count($actor_data['theaters']); ?>
+                                </p>
+                                <?php if (count($actor_data['theaters']) > 0): ?>
+                                <p style="font-size: 14px; color: rgba(255,255,255,0.9); margin: 0;">
+                                    <?php 
+                                        $theater_names = array_map(function($t) { return isset($t['name']) ? $t['name'] : ''; }, array_filter($actor_data['theaters'], function($t) { return isset($t['name']); }));
+                                        echo htmlspecialchars(implode(', ', $theater_names)); 
+                                    ?>
+                                </p>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -380,56 +426,6 @@ try {
                 <p style="color: #6b7280; padding: 20px; text-align: center;">No credits found for this actor.</p>
                 <?php endif; ?>
                 </div>
-                </div>
-            </div>
-            
-            <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
-                <div style="padding: 16px 24px; border-bottom: 1px solid #e5e7eb;">
-                    <h2 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0;">Quick Stats</h2>
-                </div>
-                <div style="padding: 24px;">
-                    <div style="display: flex; flex-direction: column; gap: 24px;">
-                        <div>
-                            <span style="display: block; font-size: 14px; color: #6b7280; margin-bottom: 4px;">Total Credits</span>
-                            <p style="font-size: 24px; font-weight: bold; color: #111827; margin: 0;">
-                                <?php echo isset($actor_data['total_credits']) ? (int)$actor_data['total_credits'] : count($actor_data['credits'] ?? []); ?>
-                            </p>
-                        </div>
-                        <?php if (!empty($actor_data['disciplines'])): ?>
-                        <div>
-                            <span style="display: block; font-size: 14px; color: #6b7280; margin-bottom: 4px;">Disciplines</span>
-                            <p style="font-size: 24px; font-weight: bold; color: #111827; margin: 0 0 4px 0;">
-                                <?php 
-                                    if (isset($actor_data['disciplines_count'])) {
-                                        echo (int)$actor_data['disciplines_count'];
-                                    } else {
-                                        $disciplines_array = explode(',', $actor_data['disciplines']);
-                                        echo count(array_filter(array_map('trim', $disciplines_array)));
-                                    }
-                                ?>
-                            </p>
-                            <p style="font-size: 14px; color: #374151; margin: 0;">
-                                <?php echo htmlspecialchars($actor_data['disciplines']); ?>,
-                            </p>
-                        </div>
-                        <?php endif; ?>
-                        <?php if (!empty($actor_data['theaters']) && is_array($actor_data['theaters'])): ?>
-                        <div>
-                            <span style="display: block; font-size: 14px; color: #6b7280; margin-bottom: 4px;">Theaters</span>
-                            <p style="font-size: 24px; font-weight: bold; color: #111827; margin: 0 0 4px 0;">
-                                <?php echo count($actor_data['theaters']); ?>
-                            </p>
-                            <?php if (count($actor_data['theaters']) > 0): ?>
-                            <p style="font-size: 14px; color: #374151; margin: 0;">
-                                <?php 
-                                    $theater_names = array_map(function($t) { return $t['name']; }, array_filter($actor_data['theaters'], function($t) { return isset($t['name']); }));
-                                    echo htmlspecialchars(implode(', ', $theater_names)); 
-                                ?>,
-                            </p>
-                            <?php endif; ?>
-                        </div>
-                        <?php endif; ?>
-                    </div>
                 </div>
             </div>
         </div>
