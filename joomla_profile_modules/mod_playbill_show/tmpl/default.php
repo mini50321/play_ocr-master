@@ -7,17 +7,21 @@ $app = Factory::getApplication();
 $input = $app->input;
 
 $module_show_id = $params->get('show_id', 0);
+$url_type = $input->getString('type', '');
 $url_show_id = $input->getInt('show_id', 0);
+$url_id = $input->getInt('id', 0);
 
 if (!empty($module_show_id) && $module_show_id > 0) {
     $show_id = $module_show_id;
+} elseif ($url_type === 'show' && !empty($url_id) && $url_id > 0) {
+    $show_id = $url_id;
 } elseif (!empty($url_show_id) && $url_show_id > 0) {
     $show_id = $url_show_id;
 } else {
     $show_id = 0;
 }
 
-echo '<!-- Playbill Show Profile Module START: Module Show ID = ' . htmlspecialchars($module_show_id) . ', URL Show ID = ' . htmlspecialchars($url_show_id) . ', Final Show ID = ' . htmlspecialchars($show_id) . ' -->';
+echo '<!-- Playbill Show Profile Module START: Module Show ID = ' . htmlspecialchars($module_show_id) . ', URL type = ' . htmlspecialchars($url_type) . ', URL id = ' . htmlspecialchars($url_id) . ', URL show_id = ' . htmlspecialchars($url_show_id) . ', Final Show ID = ' . htmlspecialchars($show_id) . ' -->';
 
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
