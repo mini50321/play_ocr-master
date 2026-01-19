@@ -1284,6 +1284,7 @@ def public_actor(id):
     credits_by_discipline = {}
     theaters_set = set()
     disciplines_set = set()
+    roles_set = set()
 
     for credit, production, show, theater in all_credits:
         discipline = credit.category
@@ -1319,6 +1320,9 @@ def public_actor(id):
         discipline_name = get_discipline_from_credit(credit.category, credit.role)
         disciplines_set.add(discipline_name)
         
+        if credit.role and credit.role.strip():
+            roles_set.add(credit.role.strip())
+        
         theaters_set.add((theater.id, theater_name, theater_lat, theater_lng, theater_city, theater_state))
     
     theaters_list = []
@@ -1341,6 +1345,8 @@ def public_actor(id):
     total_credits = sum(len(credits) for credits in credits_by_discipline.values())
     disciplines_list = sorted(disciplines_set)
     disciplines_count = len(disciplines_list)
+    roles_list = sorted(list(roles_set))
+    roles_count = len(roles_list)
     
     class PersonData:
         def __init__(self, person_obj, photo_url):
@@ -1358,7 +1364,9 @@ def public_actor(id):
                          theaters_map=theaters_with_coords,
                          total_credits=total_credits,
                          disciplines_count=disciplines_count,
-                         disciplines_list=disciplines_list)
+                         disciplines_list=disciplines_list,
+                         roles_list=roles_list,
+                         roles_count=roles_count)
 
 @app.route("/public/show/<int:id>")
 def public_show(id):

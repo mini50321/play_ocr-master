@@ -59,12 +59,16 @@ def joomla_api_actor(id):
     credits_data = []
     theaters_set = set()
     theaters_map_data = []
+    roles_set = set()
     
     from joomla_theater_fetch import get_theater_from_joomla
     
     for credit, production, show, theater in credits:
+        role_value = credit.role if credit.role else ''
+        role_cleaned = role_value.strip() if role_value else ''
+        
         credits_data.append({
-            'role': credit.role,
+            'role': role_value,
             'category': credit.category,
             'is_equity': credit.is_equity,
             'show': {
@@ -80,6 +84,10 @@ def joomla_api_actor(id):
             'start_date': production.start_date,
             'end_date': production.end_date
         })
+        
+        if role_cleaned:
+            roles_set.add(role_cleaned)
+        
         if theater.id:
             theaters_set.add((theater.id, theater.name))
             
@@ -106,6 +114,9 @@ def joomla_api_actor(id):
     
     theaters_list = [{'id': tid, 'name': tname} for tid, tname in theaters_set]
     
+    roles_list = sorted(list(roles_set))
+    roles_count = len(roles_list)
+    
     disciplines_count = 0
     disciplines_list = []
     if person.disciplines:
@@ -117,6 +128,8 @@ def joomla_api_actor(id):
         'name': person.name,
         'disciplines': person.disciplines,
         'disciplines_count': disciplines_count,
+        'roles': roles_list,
+        'roles_count': roles_count,
         'photo': actor_photo,
         'credits': credits_data,
         'theaters': theaters_list,

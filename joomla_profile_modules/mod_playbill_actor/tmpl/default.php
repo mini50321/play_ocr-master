@@ -199,7 +199,40 @@ try {
                                     <?php echo isset($actor_data['total_credits']) ? (int)$actor_data['total_credits'] : count($actor_data['credits'] ?? []); ?>
                                 </p>
                             </div>
-                            <?php if (!empty($actor_data['disciplines'])): ?>
+                            <?php 
+                            $roles_list = isset($actor_data['roles']) && is_array($actor_data['roles']) ? $actor_data['roles'] : [];
+                            
+                            if (empty($roles_list) && !empty($actor_data['credits']) && is_array($actor_data['credits'])) {
+                                $roles_set = [];
+                                foreach ($actor_data['credits'] as $credit) {
+                                    if (isset($credit['role']) && !empty($credit['role']) && is_string($credit['role'])) {
+                                        $role_trimmed = trim($credit['role']);
+                                        if (!empty($role_trimmed)) {
+                                            $roles_set[$role_trimmed] = true;
+                                        }
+                                    }
+                                }
+                                $roles_list = array_keys($roles_set);
+                                sort($roles_list);
+                            }
+                            
+                            $roles_count = count($roles_list);
+                            
+                            if (!empty($roles_list) && $roles_count > 0): ?>
+                            <div>
+                                <span style="display: block; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Positions</span>
+                                <p style="font-size: 24px; font-weight: bold; color: white; margin: 0 0 4px 0;">
+                                    <?php echo $roles_count; ?>
+                                </p>
+                                <p style="font-size: 14px; color: rgba(255,255,255,0.9); margin: 0; line-height: 1.4;">
+                                    <?php 
+                                    $roles_display = array_map('trim', $roles_list);
+                                    $roles_display = array_filter($roles_display);
+                                    echo htmlspecialchars(implode(', ', $roles_display)); 
+                                    ?>
+                                </p>
+                            </div>
+                            <?php elseif (!empty($actor_data['disciplines'])): ?>
                             <div>
                                 <span style="display: block; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 4px;">Disciplines</span>
                                 <p style="font-size: 24px; font-weight: bold; color: white; margin: 0 0 4px 0;">
