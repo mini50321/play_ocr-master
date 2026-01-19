@@ -90,21 +90,43 @@ if (!empty($latest_production['credits']) && is_array($latest_production['credit
 }
 
 ?>
-<div class="playbill-show-module" style="margin: 20px 0; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
-    <h2 class="playbill-title" style="font-size: 28px; font-weight: bold; margin-bottom: 15px; color: #1f2937;">
-        <?php echo htmlspecialchars($show_data['title']); ?>
-    </h2>
-    
-    <div style="margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 6px; border-left: 4px solid #4f46e5;">
-        <p style="margin: 0; color: #6b7280; font-size: 16px;">
-            <strong style="color: #1f2937;">Theater:</strong> 
-            <?php echo htmlspecialchars($latest_production['theater']['name']); ?>
-        </p>
-        <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 16px;">
-            <strong style="color: #1f2937;">Year:</strong> 
-            <?php echo (int)$latest_production['year']; ?>
-        </p>
+<div class="playbill-show-module" style="margin: 20px 0;">
+    <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
+        <div style="padding: 20px 24px; background: linear-gradient(to right, #4f46e5, #9333ea);">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <div style="flex-shrink: 0; position: relative;">
+                    <?php 
+                    $preview_image_url = !empty($latest_production['preview_image_url']) ? $latest_production['preview_image_url'] : '';
+                    if ($preview_image_url): 
+                    ?>
+                    <img src="<?php echo htmlspecialchars($preview_image_url); ?>" 
+                         alt="<?php echo htmlspecialchars($show_data['title']); ?>" 
+                         style="width: 192px; height: 288px; object-fit: cover; border-radius: 8px; border: 4px solid white; box-shadow: 0 10px 15px rgba(0,0,0,0.2);">
+                    <?php else: ?>
+                    <div style="width: 192px; height: 288px; background: #d1d5db; border-radius: 8px; border: 4px solid white; box-shadow: 0 10px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center;">
+                        <span style="color: #6b7280; font-size: 12px; text-align: center; padding: 8px;">No Image</span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h1 style="font-size: 30px; font-weight: bold; color: white; margin: 0 0 8px 0;">
+                            <?php echo htmlspecialchars($show_data['title']); ?>
+                        </h1>
+                        <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
+                            <?php echo htmlspecialchars($latest_production['theater']['name']); ?>
+                            <?php if (!empty($latest_production['year'])): ?>
+                            <span style="margin: 0 8px;">•</span>
+                            <?php echo (int)$latest_production['year']; ?>
+                            <?php endif; ?>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; padding: 20px;">
     
     <?php if (!empty($credits_by_category) || !empty($all_credits)): ?>
     <div style="margin-bottom: 20px; border-bottom: 2px solid #e5e7eb;">

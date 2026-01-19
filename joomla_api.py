@@ -172,6 +172,17 @@ def joomla_api_show(id):
             except:
                 pass
         
+        preview_image_url = None
+        if prod.preview_image:
+            from flask import url_for
+            import os
+            photo_path = os.path.join('static', prod.preview_image)
+            if os.path.exists(photo_path):
+                preview_image_url = url_for('static', filename=prod.preview_image, _external=True)
+                import time
+                photo_mtime = os.path.getmtime(photo_path)
+                preview_image_url += f'?v={int(photo_mtime)}'
+        
         productions_data.append({
             'id': prod.id,
             'theater': {
@@ -183,6 +194,7 @@ def joomla_api_show(id):
             'start_date': prod.start_date,
             'end_date': prod.end_date,
             'preview_image': prod.preview_image,
+            'preview_image_url': preview_image_url,
             'youtube_url': prod.youtube_url,
             'credits': credits_data
         })
