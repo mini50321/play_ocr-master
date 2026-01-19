@@ -1284,7 +1284,7 @@ def public_actor(id):
     credits_by_discipline = {}
     theaters_set = set()
     disciplines_set = set()
-    
+
     for credit, production, show, theater in all_credits:
         discipline = credit.category
         if discipline not in credits_by_discipline:

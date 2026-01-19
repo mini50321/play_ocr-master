@@ -5,7 +5,19 @@ use Joomla\CMS\Factory;
 
 $app = Factory::getApplication();
 $input = $app->input;
-$show_id = $input->getInt('id', $params->get('show_id', 0));
+
+$module_show_id = $params->get('show_id', 0);
+$url_show_id = $input->getInt('show_id', 0);
+
+if (!empty($module_show_id) && $module_show_id > 0) {
+    $show_id = $module_show_id;
+} elseif (!empty($url_show_id) && $url_show_id > 0) {
+    $show_id = $url_show_id;
+} else {
+    $show_id = 0;
+}
+
+echo '<!-- Playbill Show Profile Module START: Module Show ID = ' . htmlspecialchars($module_show_id) . ', URL Show ID = ' . htmlspecialchars($url_show_id) . ', Final Show ID = ' . htmlspecialchars($show_id) . ' -->';
 
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
@@ -17,18 +29,36 @@ if (empty($actor_profile_url)) {
     $actor_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
 }
 
-if (!$module_enabled || empty($show_id)) {
+if (!$module_enabled) {
+    echo '<!-- Playbill Show Module: Module is disabled -->';
+    return;
+}
+
+if (empty($show_id) || $show_id == 0) {
+    echo '<div class="playbill-error" style="padding: 15px; background: #fee; border: 2px solid #fcc; color: #c00; border-radius: 4px; margin: 10px 0;">';
+    echo '<strong>Playbill Show Module Error</strong><br>';
+    echo 'Show ID is missing or invalid. Please set a valid Show ID in the module parameters.';
+    echo '<br><small>Current Show ID: ' . htmlspecialchars($show_id) . '</small>';
+    echo '</div>';
     return;
 }
 
 $show_data = ModPlaybillShowHelper::getShowData($show_id, $api_base_url, $public_base_url);
 
 if (!$show_data) {
+    echo '<div class="playbill-error" style="padding: 15px; background: #fee; border: 2px solid #fcc; color: #c00; border-radius: 4px; margin: 10px 0;">';
+    echo '<strong>Playbill Show Module Error</strong><br>';
+    echo 'Show not found or error loading data for Show ID: <strong>' . htmlspecialchars($show_id) . '</strong><br>';
+    echo 'Please verify:<br>';
+    echo '1. The Show ID exists in the Playbill database<br>';
+    echo '2. The API endpoint is accessible: <code>' . htmlspecialchars($api_base_url . '/show/' . $show_id) . '</code><br>';
+    echo '3. Check Joomla error logs for detailed error messages';
     if (Factory::getApplication()->get('debug')) {
-        echo '<div class="playbill-error" style="padding: 10px; background: #fee; border: 1px solid #fcc; color: #c00; border-radius: 4px; margin: 10px 0;">';
-        echo 'Playbill Show Module: Show not found or error loading data for Show ID ' . htmlspecialchars($show_id) . '.';
-        echo '</div>';
+        echo '<br><br><strong>Debug Info:</strong><br>';
+        echo 'API Base URL: ' . htmlspecialchars($api_base_url) . '<br>';
+        echo 'Full API URL: ' . htmlspecialchars($api_base_url . '/show/' . $show_id) . '<br>';
     }
+    echo '</div>';
     return;
 }
 
@@ -241,4 +271,4 @@ body.item-view article:has(+ .playbill-show-module) {
     });
 })();
 </script>
-
+<!-- Playbill Show Profile Module END -->
