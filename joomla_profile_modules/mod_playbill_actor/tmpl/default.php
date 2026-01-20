@@ -182,14 +182,9 @@ try {
                 </div>
                 <div style="flex: 1; display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
                     <div>
-                        <h1 style="font-size: 30px; font-weight: bold; color: white; margin: 0 0 8px 0;">
+                        <h1 style="font-size: 30px; font-weight: bold; color: white; margin: 0;">
                             <?php echo htmlspecialchars($actor_data['name']); ?>
                         </h1>
-                        <?php if (!empty($actor_data['disciplines'])): ?>
-                        <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
-                            <?php echo htmlspecialchars($actor_data['disciplines']); ?>
-                        </p>
-                        <?php endif; ?>
                     </div>
                     <div style="margin-right: 180px;">
                         <div style="display: flex; flex-direction: column; gap: 16px;">
