@@ -167,7 +167,7 @@ try {
 ?>
 <div class="playbill-actor-module" style="margin: 20px 0;">
     <div style="background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 24px;">
-        <div style="padding: 20px 24px; background: linear-gradient(to right, #4f46e5, #9333ea);">
+        <div style="padding: 20px 24px; background: linear-gradient(to right, #1e1e1e, #373737);">
             <div style="display: flex; align-items: center; gap: 24px;">
                 <div style="flex-shrink: 0; position: relative;">
                     <?php if (!empty($actor_data['photo'])): ?>
