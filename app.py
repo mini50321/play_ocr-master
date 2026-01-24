@@ -1705,6 +1705,80 @@ def edit_understudies(production_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/export/playbill-data")
+def export_playbill_data():
+    """
+    EXPLORATORY / NON-CANONICAL ENDPOINT
+    
+    Returns a read-only, denormalized view of all Playbill data.
+    This endpoint is for exploratory use only.
+    No guarantees of completeness or stability.
+    This endpoint may be removed or changed at any time.
+    
+    Format: JSON (default) or CSV (add ?format=csv)
+    """
+    try:
+        # Query all credits with related data
+        credits_query = db.session.query(Credit, Person, Production, Show, Theater).join(
+            Person, Credit.person_id == Person.id
+        ).join(
+            Production, Credit.production_id == Production.id
+        ).join(
+            Show, Production.show_id == Show.id
+        ).join(
+            Theater, Production.theater_id == Theater.id
+        ).order_by(Person.name, Show.title, Production.year)
+        
+        all_credits = credits_query.all()
+        
+        # Flatten data
+        export_data = []
+        for credit, person, production, show, theater in all_credits:
+            export_data.append({
+                'person_id': person.id,
+                'person_name': person.name,
+                'category': credit.category,
+                'role': credit.role,
+                'show_id': show.id,
+                'show_title': show.title,
+                'production_year': production.year,
+                'theater_name': theater.name,
+                'equity_flag': credit.is_equity,
+                'start_date': production.start_date,
+                'end_date': production.end_date
+            })
+        
+        # Check format parameter
+        format_type = request.args.get('format', 'json').lower()
+        
+        if format_type == 'csv':
+            import csv
+            import io
+            output = io.StringIO()
+            if export_data:
+                writer = csv.DictWriter(output, fieldnames=export_data[0].keys())
+                writer.writeheader()
+                writer.writerows(export_data)
+            
+            response = make_response(output.getvalue())
+            response.headers['Content-Type'] = 'text/csv'
+            response.headers['Content-Disposition'] = 'attachment; filename=playbill_export.csv'
+            response.headers['X-Warning'] = 'EXPLORATORY / NON-CANONICAL - This data is for exploratory use only. No guarantees of completeness or stability.'
+            return response
+        else:
+            # JSON format
+            response = jsonify({
+                'warning': 'EXPLORATORY / NON-CANONICAL - This data is for exploratory use only. No guarantees of completeness or stability.',
+                'data': export_data,
+                'count': len(export_data)
+            })
+            response.headers['X-Warning'] = 'EXPLORATORY / NON-CANONICAL - This data is for exploratory use only. No guarantees of completeness or stability.'
+            return response
+            
+    except Exception as e:
+        logger.error(f"Error in export_playbill_data: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
 from joomla_api import joomla_api
 app.register_blueprint(joomla_api)
