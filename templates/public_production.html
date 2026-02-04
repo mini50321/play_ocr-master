@@ -1,0 +1,259 @@
+{% extends "public_layout.html" %}
+
+{% block content %}
+<div class="bg-white shadow sm:rounded-lg overflow-hidden mb-6">
+    <div class="px-6 py-5 bg-gradient-to-r from-indigo-600 to-purple-600">
+        <div class="flex items-center gap-6">
+            <div class="flex-shrink-0 relative group">
+                {% if production_data.production.preview_image %}
+                <img src="{{ url_for('static', filename=production_data.production.preview_image) }}" 
+                     alt="{{ show.title }}" 
+                     class="h-72 w-48 object-cover rounded border-4 border-white shadow-lg">
+                {% else %}
+                <div class="h-72 w-48 bg-gray-300 rounded border-4 border-white shadow-lg flex items-center justify-center">
+                    <span class="text-gray-500 text-xs text-center px-2">No Image</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="flex-1">
+                <h1 class="text-3xl font-bold text-white">{{ show.title }}</h1>
+                <p class="text-indigo-100 mt-2">
+                    <a href="{{ url_for('public_theater', id=production_data.theater.id) }}" class="text-indigo-100 hover:text-white">
+                        {{ production_data.theater.name }}
+                    </a>
+                    {% if production_data.production.year %}
+                    <span class="mx-2">•</span>
+                    {{ production_data.production.year }}
+                    {% endif %}
+                    {% if production_data.production.start_date %}
+                    <span class="mx-2">•</span>
+                    {{ production_data.production.start_date }}
+                    {% if production_data.production.end_date %}
+                    - {{ production_data.production.end_date }}
+                    {% endif %}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white shadow sm:rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="text-lg font-semibold text-gray-800">Credits</h3>
+            <div class="flex gap-2">
+                <button type="button" onclick="showCreditsView('category')" id="view-category-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    By Category
+                </button>
+                <button type="button" onclick="showCreditsView('alphabetical')" id="view-alphabetical-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    Alphabetical
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="px-6 py-4">
+        <div id="category-view">
+        {% for category, credits_list in production_data.credits.items() %}
+        <div class="mb-6">
+            <div class="flex items-center gap-2 mb-3">
+                <button type="button" 
+                        onclick="toggleCategory('{{ category }}')"
+                        class="flex items-center gap-2 text-gray-700 hover:text-gray-900 focus:outline-none">
+                    <svg id="arrow-{{ category }}" class="w-5 h-5 transform transition-transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-800">{{ category }}</h3>
+                </button>
+                {% if category == 'Understudies' and current_user.is_authenticated %}
+                <button type="button" 
+                        onclick="toggleEditUnderstudies({{ production_data.production.id }})"
+                        class="text-indigo-600 hover:text-indigo-800 focus:outline-none ml-auto"
+                        id="edit-icon-{{ production_data.production.id }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                </button>
+                {% endif %}
+            </div>
+            <div id="content-{{ category }}">
+            {% if category == 'Understudies' %}
+            <div id="understudies-display-{{ production_data.production.id }}">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for credit in credits_list %}
+                <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <a href="{{ url_for('public_actor', id=credit.person_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                        {{ credit.person_name }}
+                    </a>
+                    {% if credit.is_equity %}
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        *
+                    </span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if credits_list|length == 0 %}
+                <div class="text-gray-500 text-sm p-2">No understudies listed</div>
+                {% endif %}
+                </div>
+            </div>
+            {% if current_user.is_authenticated %}
+            <div id="understudies-edit-{{ production_data.production.id }}" class="hidden">
+                <div class="p-2 bg-gray-50 rounded">
+                    <textarea id="understudies-textarea-{{ production_data.production.id }}" 
+                              class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                              rows="4">{% for credit in credits_list %}{{ credit.person_name }}{% if not loop.last %}, {% endif %}{% endfor %}</textarea>
+                    <div class="mt-2 flex gap-2">
+                        <button type="button" 
+                                onclick="saveUnderstudies({{ production_data.production.id }})"
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Understudies</button>
+                        <button type="button" 
+                                onclick="toggleEditUnderstudies({{ production_data.production.id }})"
+                                class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for credit in credits_list %}
+                <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <a href="{{ url_for('public_actor', id=credit.person_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                        {{ credit.person_name }}
+                    </a>
+                    {% if credit.is_equity %}
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        *
+                    </span>
+                    {% endif %}
+                    {% if credit.role and credit.role != category %}
+                    <span class="text-gray-500 text-sm break-words">({{ credit.role }})</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+        
+        <div id="alphabetical-view" style="display: none;">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for credit in production_data.all_credits_sorted %}
+                <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <a href="{{ url_for('public_actor', id=credit.person_id) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                        {{ credit.person_name }}
+                    </a>
+                    {% if credit.is_equity %}
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        *
+                    </span>
+                    {% endif %}
+                    {% if credit.role %}
+                    <span class="text-gray-500 text-sm break-words">({{ credit.role }})</span>
+                    {% endif %}
+                    {% if credit.category %}
+                    <span class="text-gray-400 text-xs break-words">[{{ credit.category }}]</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleCategory(category) {
+        const contentDiv = document.getElementById(`content-${category}`);
+        const arrow = document.getElementById(`arrow-${category}`);
+        
+        if (contentDiv.classList.contains('hidden')) {
+            contentDiv.classList.remove('hidden');
+            arrow.classList.add('rotate-90');
+        } else {
+            contentDiv.classList.add('hidden');
+            arrow.classList.remove('rotate-90');
+        }
+    }
+
+    {% if current_user.is_authenticated %}
+    function toggleEditUnderstudies(productionId) {
+        const displayDiv = document.getElementById(`understudies-display-${productionId}`);
+        const editDiv = document.getElementById(`understudies-edit-${productionId}`);
+        
+        if (displayDiv.classList.contains('hidden')) {
+            displayDiv.classList.remove('hidden');
+            editDiv.classList.add('hidden');
+        } else {
+            displayDiv.classList.add('hidden');
+            editDiv.classList.remove('hidden');
+        }
+    }
+
+    async function saveUnderstudies(productionId) {
+        const textarea = document.getElementById(`understudies-textarea-${productionId}`);
+        const understudyNames = textarea.value.split(',').map(name => name.trim()).filter(name => name.length > 0);
+
+        try {
+            const editUrlBase = '{{ url_for("edit_understudies", production_id=0) }}'.replace('/0', '');
+            const response = await fetch(`${editUrlBase}/${productionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ understudies: understudyNames })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toggleEditUnderstudies(productionId);
+                alert('Understudies updated successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Failed to save understudies'));
+            }
+        } catch (error) {
+            console.error('Error saving understudies:', error);
+            alert('An error occurred while saving understudies.');
+        }
+    }
+    {% endif %}
+
+    function showCreditsView(view) {
+        const categoryView = document.getElementById('category-view');
+        const alphabeticalView = document.getElementById('alphabetical-view');
+        const categoryBtn = document.getElementById('view-category-btn');
+        const alphabeticalBtn = document.getElementById('view-alphabetical-btn');
+        
+        if (view === 'category') {
+            if (categoryView) categoryView.style.display = 'block';
+            if (alphabeticalView) alphabeticalView.style.display = 'none';
+            if (categoryBtn) {
+                categoryBtn.classList.remove('bg-gray-200', 'text-gray-700');
+                categoryBtn.classList.add('bg-indigo-600', 'text-white');
+            }
+            if (alphabeticalBtn) {
+                alphabeticalBtn.classList.remove('bg-indigo-600', 'text-white');
+                alphabeticalBtn.classList.add('bg-gray-200', 'text-gray-700');
+            }
+        } else {
+            if (categoryView) categoryView.style.display = 'none';
+            if (alphabeticalView) alphabeticalView.style.display = 'block';
+            if (categoryBtn) {
+                categoryBtn.classList.remove('bg-indigo-600', 'text-white');
+                categoryBtn.classList.add('bg-gray-200', 'text-gray-700');
+            }
+            if (alphabeticalBtn) {
+                alphabeticalBtn.classList.remove('bg-gray-200', 'text-gray-700');
+                alphabeticalBtn.classList.add('bg-indigo-600', 'text-white');
+            }
+        }
+    }
+</script>
+{% endblock %}
+

@@ -860,11 +860,26 @@ def edit(id):
         
     all_credits = []
     for credit in production.credits:
+        person = credit.person
+        person_photo_url = None
+        person_id = person.id
+        
+        if person.photo:
+            photo_path = os.path.join('static', person.photo)
+            if os.path.exists(photo_path):
+                person_photo_url = flask_url_for('static', filename=person.photo)
+                if APPLICATION_ROOT != '/':
+                    root = APPLICATION_ROOT.rstrip('/')
+                    if not person_photo_url.startswith(root):
+                        person_photo_url = root + person_photo_url
+        
         all_credits.append({
             "cat": credit.category,
             "role": credit.role,
-            "actor": credit.person.name,
-            "is_equity": credit.is_equity
+            "actor": person.name,
+            "is_equity": credit.is_equity,
+            "person_id": person_id,
+            "person_photo_url": person_photo_url
         })
         
     theater_name = get_theater_name_from_joomla(production.theater.joomla_id)
@@ -1422,6 +1437,59 @@ def public_show(id):
                          show=show, 
                          productions_data=all_credits_by_production)
 
+@app.route("/public/production/<int:production_id>")
+def public_production(production_id):
+    production = db.session.get(Production, production_id)
+    if not production:
+        return "Production not found", 404
+    
+    show = production.show
+    theater = production.theater
+    
+    if not theater.joomla_id:
+        return "Theater is not linked to Joomla database", 404
+    
+    theater_name = get_theater_name_from_joomla(theater.joomla_id)
+    
+    credits = Credit.query.filter_by(production_id=production_id).all()
+    credits_by_category = {}
+    all_credits_sorted = []
+    
+    for credit in credits:
+        cat = credit.category
+        if cat not in credits_by_category:
+            credits_by_category[cat] = []
+        credit_data = {
+            'person_name': credit.person.name,
+            'person_id': credit.person.id,
+            'role': credit.role,
+            'is_equity': credit.is_equity,
+            'category': cat
+        }
+        credits_by_category[cat].append(credit_data)
+        all_credits_sorted.append(credit_data)
+    
+    all_credits_sorted.sort(key=lambda x: x['person_name'].lower())
+    
+    class TheaterWrapper:
+        def __init__(self, theater_obj, name):
+            self.id = theater_obj.id
+            self.name = name
+            self.joomla_id = theater_obj.joomla_id
+    
+    theater_wrapper = TheaterWrapper(theater, theater_name)
+    
+    production_data = {
+        'production': production,
+        'theater': theater_wrapper,
+        'credits': credits_by_category,
+        'all_credits_sorted': all_credits_sorted
+    }
+    
+    return render_template("public_production.html", 
+                         show=show,
+                         production_data=production_data)
+
 @app.route("/public/theater/<int:id>")
 def public_theater(id):
     theater = db.session.get(Theater, id)
@@ -1581,18 +1649,29 @@ def public_search():
                     })
         
         if filter_type in ['all', 'shows']:
-            shows = Show.query.filter(
-                Show.title.ilike(f'%{query}%')
-            ).all()
+            productions = db.session.query(Production, Show, Theater)\
+                .join(Show, Production.show_id == Show.id)\
+                .join(Theater, Production.theater_id == Theater.id)\
+                .filter(Show.title.ilike(f'%{query}%'))\
+                .all()
             
-            for show in shows:
-                prod_count = Production.query.filter_by(show_id=show.id).count()
-                if prod_count > 0:
-                    results['shows'].append({
-                        'id': show.id,
-                        'title': show.title,
-                        'productions_count': prod_count
-                    })
+            for production, show, theater in productions:
+                if not theater.joomla_id:
+                    continue
+                
+                try:
+                    theater_name = get_theater_name_from_joomla(theater.joomla_id)
+                except:
+                    continue
+                
+                results['shows'].append({
+                    'production_id': production.id,
+                    'show_title': show.title,
+                    'theater_name': theater_name,
+                    'year': production.year,
+                    'start_date': production.start_date,
+                    'end_date': production.end_date
+                })
         
         if filter_type in ['all', 'theaters']:
             theaters = Theater.query.filter(

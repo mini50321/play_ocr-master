@@ -75,16 +75,38 @@
     {% if results.shows %}
     <div class="bg-white shadow sm:rounded-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-900">Shows ({{ results.shows|length }})</h2>
+            <h2 class="text-xl font-semibold text-gray-900">Productions ({{ results.shows|length }})</h2>
         </div>
         <div class="px-6 py-4">
             <div class="space-y-3">
-                {% for show in results.shows %}
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                    <a href="{{ url_for('public_show', id=show.id) }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800">
-                        {{ show.title }}
-                    </a>
-                    <span class="text-gray-500 text-sm">{{ show.productions_count }} production(s)</span>
+                {% for production in results.shows %}
+                <div class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <a href="{{ url_for('public_production', production_id=production.production_id) }}" class="text-lg font-semibold text-indigo-600 hover:text-indigo-800 block mb-1">
+                                {{ production.show_title }}
+                            </a>
+                            <div class="text-sm text-gray-600 space-y-1">
+                                <div>
+                                    <span class="font-medium">{{ production.theater_name }}</span>
+                                    {% if production.year %}
+                                    <span class="mx-1">•</span>
+                                    <span>{{ production.year }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if production.start_date or production.end_date %}
+                                <div class="text-gray-500">
+                                    {% if production.start_date %}
+                                    {{ production.start_date }}
+                                    {% endif %}
+                                    {% if production.end_date %}
+                                    {% if production.start_date %} - {% endif %}{{ production.end_date }}
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
