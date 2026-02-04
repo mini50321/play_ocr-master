@@ -201,7 +201,7 @@
                                                class="hidden" 
                                                id="photo-input-{{ member.person_id|default('new') }}"
                                                data-person-id="{{ member.person_id|default('') }}"
-                                               onchange="handlePhotoUpload(this, {{ member.person_id|default('null') }})">
+                                               onchange="handlePhotoUpload(this, {% if member.person_id %}{{ member.person_id }}{% else %}null{% endif %})">
                                         <button type="button"
                                                 onclick="document.getElementById('photo-input-{{ member.person_id|default('new') }}').click()"
                                                 class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 rounded border-2 border-transparent hover:border-indigo-500 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
@@ -719,17 +719,20 @@
 
         let targetPersonId = personId;
         
-        if (!targetPersonId) {
+        if (!targetPersonId || targetPersonId === 'null' || targetPersonId === null) {
             const row = input.closest('tr');
+            const inputPersonId = input.getAttribute('data-person-id');
             const actorInput = row.querySelector('.actor-input');
-            const personIdAttr = actorInput ? actorInput.getAttribute('data-person-id') : null;
+            const actorPersonId = actorInput ? actorInput.getAttribute('data-person-id') : null;
             
-            if (personIdAttr && personIdAttr !== '') {
-                targetPersonId = parseInt(personIdAttr);
+            if (inputPersonId && inputPersonId !== '' && inputPersonId !== 'null') {
+                targetPersonId = parseInt(inputPersonId);
+            } else if (actorPersonId && actorPersonId !== '' && actorPersonId !== 'null') {
+                targetPersonId = parseInt(actorPersonId);
             }
         }
 
-        if (!targetPersonId) {
+        if (!targetPersonId || targetPersonId === 'null' || isNaN(targetPersonId) || targetPersonId <= 0) {
             alert('Person ID not found. Please save the production first, then you can upload photos.');
             input.value = '';
             return;
