@@ -97,6 +97,15 @@
                     default=""
                     size="60"
                 />
+                
+                <field
+                    name="actor_profile_page_id"
+                    type="text"
+                    label="MOD_PLAYBILL_SEARCH_ACTOR_PROFILE_PAGE_ID_LABEL"
+                    description="MOD_PLAYBILL_SEARCH_ACTOR_PROFILE_PAGE_ID_DESC"
+                    default="0"
+                    size="10"
+                />
             </fieldset>
         </fields>
     </config>

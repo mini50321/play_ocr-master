@@ -3,6 +3,19 @@ from models import db, Person, Show, Theater, Production, Credit
 
 joomla_api = Blueprint('joomla_api', __name__)
 
+def normalize_title_for_search(title):
+    if not title:
+        return ""
+    return title.strip().lower()
+
+def get_canonical_title(title):
+    if not title:
+        return title
+    name = title.strip()
+    if not name:
+        return name
+    return name.title()
+
 @joomla_api.route("/api/joomla/actor/<int:id>")
 def joomla_api_actor(id):
     person = db.session.get(Person, id)
@@ -429,40 +442,132 @@ def joomla_api_search():
         'theaters': []
     }
     
+    seen_actor_ids = set()
+    
     if query:
         if filter_type in ['all', 'actors']:
-            persons = Person.query.filter(
-                Person.name.ilike(f'%{query}%')
-            ).all()
+            if filter_type == 'actors':
+                person_ids_query = db.session.query(Person.id)\
+                    .join(Credit, Person.id == Credit.person_id)\
+                    .join(Production, Credit.production_id == Production.id)\
+                    .join(Show, Production.show_id == Show.id)\
+                    .join(Theater, Production.theater_id == Theater.id)\
+                    .filter(Person.name.ilike(f'%{query}%'))
+            else:
+                person_ids_query = db.session.query(Person.id)\
+                    .join(Credit, Person.id == Credit.person_id)\
+                    .join(Production, Credit.production_id == Production.id)\
+                    .join(Show, Production.show_id == Show.id)\
+                    .join(Theater, Production.theater_id == Theater.id)\
+                    .filter(
+                        (Person.name.ilike(f'%{query}%')) |
+                        (Show.title.ilike(f'%{query}%')) |
+                        (Theater.name.ilike(f'%{query}%'))
+                    )
+            
+            person_ids = [person_id for person_id, in person_ids_query.distinct().all()]
+            persons = Person.query.filter(Person.id.in_(person_ids)).all()
+            
+            person_credits_map = {}
+            seen_normalized = set()
             
             for person in persons:
-                credits_count = Credit.query.filter_by(person_id=person.id).count()
-                if equity_filter == 'equity':
-                    credits_count = Credit.query.filter_by(person_id=person.id, is_equity=True).count()
-                    if credits_count == 0:
-                        continue
-                elif equity_filter == 'non-equity':
-                    credits_count = Credit.query.filter_by(person_id=person.id, is_equity=False).count()
-                    if credits_count == 0:
-                        continue
+                if not person or not person.name:
+                    continue
+                    
+                from app import normalize_name
+                normalized_name = normalize_name(person.name)
                 
-                results['actors'].append({
-                    'id': person.id,
-                    'name': person.name,
-                    'credits_count': credits_count
-                })
+                if not normalized_name:
+                    continue
+                
+                normalized_key = normalized_name.strip().lower()
+                
+                if normalized_key not in person_credits_map:
+                    person_credits_map[normalized_key] = {
+                        'display_name': normalized_name,
+                        'ids': set(),
+                        'persons': []
+                    }
+                    seen_normalized.add(normalized_key)
+                
+                if person.id not in person_credits_map[normalized_key]['ids']:
+                    person_credits_map[normalized_key]['ids'].add(person.id)
+                    person_credits_map[normalized_key]['persons'].append(person)
+            
+            for normalized_key, data in person_credits_map.items():
+                all_person_ids = list(data['ids'])
+                if not all_person_ids:
+                    continue
+                    
+                credits_query = Credit.query.filter(Credit.person_id.in_(all_person_ids))
+                
+                if equity_filter == 'equity':
+                    credits_query = credits_query.filter_by(is_equity=True)
+                elif equity_filter == 'non-equity':
+                    credits_query = credits_query.filter_by(is_equity=False)
+                
+                filtered_credits_count = credits_query.count()
+                
+                if filtered_credits_count > 0:
+                    valid_person_ids = []
+                    person_credit_counts = {}
+                    
+                    for pid in all_person_ids:
+                        try:
+                            person_check = db.session.get(Person, pid)
+                            if person_check and person_check.id == pid:
+                                valid_person_ids.append(pid)
+                                person_credits = Credit.query.filter_by(person_id=pid).count()
+                                person_credit_counts[pid] = person_credits
+                        except:
+                            continue
+                    
+                    if not valid_person_ids:
+                        continue
+                    
+                    primary_person_id = max(valid_person_ids, key=lambda pid: person_credit_counts.get(pid, 0))
+                    
+                    try:
+                        primary_person = db.session.get(Person, primary_person_id)
+                        if not primary_person or primary_person.id != primary_person_id:
+                            continue
+                    except:
+                        continue
+                    
+                    if primary_person_id not in seen_actor_ids:
+                        seen_actor_ids.add(primary_person_id)
+                        results['actors'].append({
+                            'id': primary_person_id,
+                            'name': data['display_name'],
+                            'credits_count': filtered_credits_count
+                        })
         
         if filter_type in ['all', 'shows']:
-            shows = Show.query.filter(
-                Show.title.ilike(f'%{query}%')
-            ).all()
+            productions = db.session.query(Production, Show, Theater)\
+                .join(Show, Production.show_id == Show.id)\
+                .join(Theater, Production.theater_id == Theater.id)\
+                .filter(Show.title.ilike(f'%{query}%'))\
+                .all()
             
-            for show in shows:
-                prod_count = Production.query.filter_by(show_id=show.id).count()
+            for production, show, theater in productions:
+                if not theater.joomla_id:
+                    continue
+                
+                try:
+                    from app import get_theater_name_from_joomla
+                    theater_name = get_theater_name_from_joomla(theater.joomla_id)
+                except:
+                    continue
+                
                 results['shows'].append({
-                    'id': show.id,
-                    'title': show.title,
-                    'productions_count': prod_count
+                    'production_id': production.id,
+                    'show_id': show.id,
+                    'show_title': get_canonical_title(show.title),
+                    'theater_name': theater_name,
+                    'year': production.year,
+                    'start_date': production.start_date,
+                    'end_date': production.end_date
                 })
         
         if filter_type in ['all', 'theaters']:

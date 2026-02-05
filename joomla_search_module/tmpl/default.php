@@ -11,10 +11,11 @@ $actor_profile_url = $params->get('actor_profile_url', '');
 $show_profile_url = $params->get('show_profile_url', '');
 $theater_profile_url = $params->get('theater_profile_url', '');
 $results_page_id = $params->get('results_page_id', 0);
+$actor_profile_page_id = $params->get('actor_profile_page_id', 0);
 $module_enabled = $params->get('module_enabled', 1);
 
 if (empty($actor_profile_url)) {
-    $actor_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
+    $actor_profile_url = '';
 }
 if (empty($show_profile_url)) {
     $show_profile_url = !empty($profile_base_url) ? $profile_base_url : $public_base_url;
@@ -111,12 +112,36 @@ if ($results_page_id) {
                 <?php foreach ($filtered_actors as $actor): ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
                     <a href="<?php 
-                        if (strpos($actor_profile_url, 'index.php') !== false || strpos($actor_profile_url, '?') !== false) {
-                            $separator = (strpos($actor_profile_url, '?') !== false) ? '&' : '?';
-                            $url = $actor_profile_url . $separator . 'id=' . (int)$actor['id'] . '&type=actor';
-                            echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+                        $actor_id = (int)($actor['id'] ?? 0);
+                        if ($actor_id <= 0) {
+                            echo '#';
                         } else {
-                            echo htmlspecialchars($actor_profile_url . '/actor/' . (int)$actor['id'], ENT_QUOTES, 'UTF-8');
+                            if ($actor_profile_page_id > 0) {
+                                $url = 'index.php?Itemid=' . $actor_profile_page_id . '&id=' . $actor_id . '&type=actor';
+                            } elseif (!empty($actor_profile_url) && strpos($actor_profile_url, 'Itemid=') !== false) {
+                                if (strpos($actor_profile_url, '?') !== false) {
+                                    $separator = '&';
+                                } else {
+                                    $separator = '?';
+                                }
+                                $url = $actor_profile_url . $separator . 'id=' . $actor_id . '&type=actor';
+                            } elseif (!empty($actor_profile_url) && strpos($actor_profile_url, 'index.php') !== false && strpos($actor_profile_url, 'Itemid=') === false) {
+                                $base = rtrim($public_base_url, '/');
+                                $url = $base . '/actor/' . $actor_id;
+                            } elseif (!empty($actor_profile_url) && (strpos($actor_profile_url, 'http://') === 0 || strpos($actor_profile_url, 'https://') === 0)) {
+                                $base = rtrim($actor_profile_url, '/');
+                                if (strpos($base, '/public') !== false) {
+                                    $url = $base . '/actor/' . $actor_id;
+                                } elseif (strpos($base, '/actor') === false) {
+                                    $url = $base . '/public/actor/' . $actor_id;
+                                } else {
+                                    $url = $base . '/' . $actor_id;
+                                }
+                            } else {
+                                $base = rtrim($public_base_url, '/');
+                                $url = $base . '/actor/' . $actor_id;
+                            }
+                            echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
                         }
                     ?>" 
                        target="_blank" 
@@ -134,51 +159,56 @@ if ($results_page_id) {
         <?php endif; ?>
         
         <?php 
-        $filtered_shows = [];
+        $filtered_productions = [];
         if (!empty($results['shows'])) {
-            foreach ($results['shows'] as $show) {
-                $productions_count = (int)($show['productions_count'] ?? 0);
-                if ($productions_count > 0) {
-                    $filtered_shows[] = $show;
+            foreach ($results['shows'] as $production) {
+                if (isset($production['production_id']) && $production['production_id'] > 0) {
+                    $filtered_productions[] = $production;
                 }
             }
         }
-        if (!empty($filtered_shows)): ?>
+        if (!empty($filtered_productions)): ?>
         <div class="playbill-results-section" style="margin-bottom: 30px;">
             <h3 style="font-size: 22px; font-weight: 600; margin-bottom: 20px; color: #1f2937; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-                Shows (<?php echo count($filtered_shows); ?>)
+                Productions (<?php echo count($filtered_productions); ?>)
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
-                <?php foreach ($filtered_shows as $show): ?>
+                <?php foreach ($filtered_productions as $production): ?>
                 <?php 
-                    if (!isset($show['id']) || empty($show['id'])) {
+                    $production_id = (int)($production['production_id'] ?? 0);
+                    if ($production_id <= 0) {
                         continue;
                     }
-                    $show_id = (int)$show['id'];
-                    if ($show_id <= 0) {
-                        continue;
-                    }
-                    $productions_count = (int)($show['productions_count'] ?? 0);
-                    if ($productions_count <= 0) {
-                        continue;
-                    }
-                    if (strpos($show_profile_url, 'index.php') !== false || strpos($show_profile_url, '?') !== false) {
-                        $separator = (strpos($show_profile_url, '?') !== false) ? '&' : '?';
-                        $show_link = $show_profile_url . $separator . 'id=' . $show_id . '&type=show';
-                    } else {
-                        $show_link = rtrim($show_profile_url, '/') . '/show/' . $show_id;
-                    }
+                    $show_title = htmlspecialchars($production['show_title'] ?? 'Unknown Show');
+                    $theater_name = htmlspecialchars($production['theater_name'] ?? '');
+                    $year = (int)($production['year'] ?? 0);
+                    $start_date = htmlspecialchars($production['start_date'] ?? '');
+                    $end_date = htmlspecialchars($production['end_date'] ?? '');
+                    
+                    $production_link = rtrim($public_base_url, '/') . '/production/' . $production_id;
                 ?>
                 <li style="padding: 14px 16px; border-bottom: 1px solid #f3f4f6; border-left: 3px solid transparent; transition: all 0.2s; background: #fafafa;" onmouseover="this.style.borderLeftColor='#667eea'; this.style.background='#f0f0f0';" onmouseout="this.style.borderLeftColor='transparent'; this.style.background='#fafafa';">
-                    <a href="<?php echo htmlspecialchars($show_link); ?>" 
+                    <a href="<?php echo htmlspecialchars($production_link); ?>" 
                        target="_blank" 
                        rel="noopener noreferrer"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;"
-                       title="Playbill Show ID: <?php echo $show_id; ?>">
-                        <?php echo htmlspecialchars($show['title'] ?? 'Unknown Show'); ?>
-                        <span style="color: #6b7280; font-size: 14px; margin-left: 10px; font-weight: normal;">
-                            (<?php echo $productions_count; ?> production(s))
-                        </span>
+                       title="Production ID: <?php echo $production_id; ?>">
+                        <strong><?php echo $show_title; ?></strong>
+                        <div style="color: #6b7280; font-size: 14px; margin-top: 4px; font-weight: normal;">
+                            <?php echo $theater_name; ?>
+                            <?php if ($year): ?>
+                                <span style="margin: 0 6px;">•</span>
+                                <span><?php echo $year; ?></span>
+                            <?php endif; ?>
+                            <?php if ($start_date || $end_date): ?>
+                                <span style="margin: 0 6px;">•</span>
+                                <span>
+                                    <?php echo $start_date; ?>
+                                    <?php if ($start_date && $end_date): ?> - <?php endif; ?>
+                                    <?php echo $end_date; ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
                     </a>
                 </li>
                 <?php endforeach; ?>

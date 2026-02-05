@@ -68,6 +68,17 @@ def normalize_name(name):
     
     return name.title()
 
+def normalize_title_for_search(title):
+    if not title:
+        return ""
+    return title.strip().lower()
+
+def get_canonical_title(title):
+    if not title:
+        return title
+    normalized = normalize_name(title.strip())
+    return normalized
+
 def get_theater_name_from_joomla(joomla_id):
     """Get theater name from Joomla database by joomla_id. Raises error if not found."""
     if not joomla_id:
@@ -1600,16 +1611,24 @@ def public_search():
         is_category_filter = filter_type not in ['all', 'actors', 'shows', 'theaters']
         
         if filter_type in ['all', 'actors'] or is_category_filter:
-            person_ids_query = db.session.query(Person.id)\
-                .join(Credit, Person.id == Credit.person_id)\
-                .join(Production, Credit.production_id == Production.id)\
-                .join(Show, Production.show_id == Show.id)\
-                .join(Theater, Production.theater_id == Theater.id)\
-                .filter(
-                    (Person.name.ilike(f'%{query}%')) |
-                    (Show.title.ilike(f'%{query}%')) |
-                    (Theater.name.ilike(f'%{query}%'))
-                )
+            if filter_type == 'actors':
+                person_ids_query = db.session.query(Person.id)\
+                    .join(Credit, Person.id == Credit.person_id)\
+                    .join(Production, Credit.production_id == Production.id)\
+                    .join(Show, Production.show_id == Show.id)\
+                    .join(Theater, Production.theater_id == Theater.id)\
+                    .filter(Person.name.ilike(f'%{query}%'))
+            else:
+                person_ids_query = db.session.query(Person.id)\
+                    .join(Credit, Person.id == Credit.person_id)\
+                    .join(Production, Credit.production_id == Production.id)\
+                    .join(Show, Production.show_id == Show.id)\
+                    .join(Theater, Production.theater_id == Theater.id)\
+                    .filter(
+                        (Person.name.ilike(f'%{query}%')) |
+                        (Show.title.ilike(f'%{query}%')) |
+                        (Theater.name.ilike(f'%{query}%'))
+                    )
 
             if is_category_filter:
                 person_ids_query = person_ids_query.filter(Credit.category.ilike(filter_type))
@@ -1618,18 +1637,37 @@ def public_search():
             persons = Person.query.filter(Person.id.in_(person_ids)).all()
             
             person_credits_map = {}
-            for person in persons:
-                normalized_name = normalize_name(person.name)
-                if normalized_name not in person_credits_map:
-                    person_credits_map[normalized_name] = {
-                        'person': person,
-                        'ids': set([person.id])
-                    }
-                else:
-                    person_credits_map[normalized_name]['ids'].add(person.id)
+            seen_normalized = set()
             
-            for normalized_name, data in person_credits_map.items():
+            for person in persons:
+                if not person or not person.name:
+                    continue
+                    
+                normalized_name = normalize_name(person.name)
+                if not normalized_name:
+                    continue
+                
+                normalized_key = normalized_name.strip().lower()
+                
+                if normalized_key not in person_credits_map:
+                    person_credits_map[normalized_key] = {
+                        'display_name': normalized_name,
+                        'ids': set(),
+                        'persons': []
+                    }
+                    seen_normalized.add(normalized_key)
+                
+                if person.id not in person_credits_map[normalized_key]['ids']:
+                    person_credits_map[normalized_key]['ids'].add(person.id)
+                    person_credits_map[normalized_key]['persons'].append(person)
+            
+            seen_actor_ids = set()
+            
+            for normalized_key, data in person_credits_map.items():
                 all_person_ids = list(data['ids'])
+                if not all_person_ids:
+                    continue
+                    
                 credits_query = Credit.query.filter(Credit.person_id.in_(all_person_ids))
                 if is_category_filter:
                     credits_query = credits_query.filter(Credit.category.ilike(filter_type))
@@ -1642,11 +1680,32 @@ def public_search():
                 filtered_credits_count = credits_query.count()
 
                 if filtered_credits_count > 0:
-                    results['actors'].append({
-                        'id': data['person'].id,
-                        'name': normalized_name,
-                        'credits_count': filtered_credits_count
-                    })
+                    valid_person_ids = []
+                    person_credit_counts = {}
+                    
+                    for pid in all_person_ids:
+                        person_check = db.session.get(Person, pid)
+                        if person_check:
+                            valid_person_ids.append(pid)
+                            person_credits = Credit.query.filter_by(person_id=pid).count()
+                            person_credit_counts[pid] = person_credits
+                    
+                    if not valid_person_ids:
+                        continue
+                    
+                    primary_person_id = max(valid_person_ids, key=lambda pid: person_credit_counts.get(pid, 0))
+                    primary_person = db.session.get(Person, primary_person_id)
+                    
+                    if not primary_person:
+                        continue
+                    
+                    if primary_person_id not in seen_actor_ids:
+                        seen_actor_ids.add(primary_person_id)
+                        results['actors'].append({
+                            'id': primary_person_id,
+                            'name': data['display_name'],
+                            'credits_count': filtered_credits_count
+                        })
         
         if filter_type in ['all', 'shows']:
             productions = db.session.query(Production, Show, Theater)\
@@ -1654,6 +1713,8 @@ def public_search():
                 .join(Theater, Production.theater_id == Theater.id)\
                 .filter(Show.title.ilike(f'%{query}%'))\
                 .all()
+            
+            normalized_shows = {}
             
             for production, show, theater in productions:
                 if not theater.joomla_id:
@@ -1664,7 +1725,15 @@ def public_search():
                 except:
                     continue
                 
-                results['shows'].append({
+                normalized_key = normalize_title_for_search(show.title)
+                
+                if normalized_key not in normalized_shows:
+                    normalized_shows[normalized_key] = {
+                        'canonical_title': get_canonical_title(show.title),
+                        'productions': []
+                    }
+                
+                normalized_shows[normalized_key]['productions'].append({
                     'production_id': production.id,
                     'show_title': show.title,
                     'theater_name': theater_name,
@@ -1672,6 +1741,18 @@ def public_search():
                     'start_date': production.start_date,
                     'end_date': production.end_date
                 })
+            
+            for normalized_key, show_data in normalized_shows.items():
+                for production in show_data['productions']:
+                    results['shows'].append({
+                        'production_id': production['production_id'],
+                        'show_title': production['show_title'],
+                        'canonical_title': show_data['canonical_title'],
+                        'theater_name': production['theater_name'],
+                        'year': production['year'],
+                        'start_date': production['start_date'],
+                        'end_date': production['end_date']
+                    })
         
         if filter_type in ['all', 'theaters']:
             theaters = Theater.query.filter(
