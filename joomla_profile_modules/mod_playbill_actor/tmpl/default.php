@@ -42,16 +42,21 @@ try {
     $app = Factory::getApplication();
     $input = $app->input;
     $url_type = $input->getString('type', '');
+    $url_actor_id = $input->getInt('actor_id', 0);
     $url_id = $input->getInt('id', 0);
     $has_url_params = $input->get('playbill_q', null) !== null || $input->get('playbill_type', null) !== null;
     
-    $raw_id = $input->get('id', null, 'raw');
+    $raw_actor_id = $input->get('actor_id', null, 'raw');
     $all_get_params = $input->get->getArray();
     
-    echo '<!-- DEBUG: url_type=' . htmlspecialchars($url_type) . ', url_id=' . htmlspecialchars($url_id) . ', raw_id=' . htmlspecialchars($raw_id ?? 'null') . ' -->';
+    echo '<!-- DEBUG: url_type=' . htmlspecialchars($url_type) . ', url_actor_id=' . htmlspecialchars($url_actor_id) . ', url_id=' . htmlspecialchars($url_id) . ', raw_actor_id=' . htmlspecialchars($raw_actor_id ?? 'null') . ' -->';
     echo '<!-- DEBUG: All GET params: ' . htmlspecialchars(json_encode($all_get_params)) . ' -->';
     
-    if ($url_type === 'actor' && $url_id > 0) {
+    if ($url_type === 'actor' && $url_actor_id > 0) {
+        $actor_id = $url_actor_id;
+    } elseif ($url_actor_id > 0) {
+        $actor_id = $url_actor_id;
+    } elseif ($url_type === 'actor' && $url_id > 0) {
         $actor_id = $url_id;
     } elseif ($url_id > 0 && empty($url_type) && !$has_url_params) {
         $actor_id = $url_id;
@@ -59,7 +64,7 @@ try {
         $actor_id = $params->get('actor_id', 0);
     } else {
         $actor_id = 0;
-    }
+}
 
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');

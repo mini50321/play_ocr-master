@@ -1685,27 +1685,28 @@ def public_search():
                     
                     for pid in all_person_ids:
                         person_check = db.session.get(Person, pid)
-                        if person_check:
-                            valid_person_ids.append(pid)
+                        if person_check and person_check.name:
                             person_credits = Credit.query.filter_by(person_id=pid).count()
-                            person_credit_counts[pid] = person_credits
+                            if person_credits > 0:
+                                valid_person_ids.append(pid)
+                                person_credit_counts[pid] = person_credits
                     
                     if not valid_person_ids:
                         continue
                     
                     primary_person_id = max(valid_person_ids, key=lambda pid: person_credit_counts.get(pid, 0))
-                    primary_person = db.session.get(Person, primary_person_id)
-                    
-                    if not primary_person:
-                        continue
                     
                     if primary_person_id not in seen_actor_ids:
-                        seen_actor_ids.add(primary_person_id)
-                        results['actors'].append({
-                            'id': primary_person_id,
-                            'name': data['display_name'],
-                            'credits_count': filtered_credits_count
-                        })
+                        final_person_check = db.session.get(Person, primary_person_id)
+                        if final_person_check and final_person_check.id == primary_person_id and final_person_check.name:
+                            test_credits = Credit.query.filter_by(person_id=primary_person_id).count()
+                            if test_credits > 0:
+                                seen_actor_ids.add(primary_person_id)
+                                results['actors'].append({
+                                    'id': primary_person_id,
+                                    'name': data['display_name'],
+                                    'credits_count': filtered_credits_count
+                                })
         
         if filter_type in ['all', 'shows']:
             productions = db.session.query(Production, Show, Theater)\

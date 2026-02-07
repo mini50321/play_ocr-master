@@ -3,6 +3,7 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Router\Route;
 
 $api_base_url = $params->get('api_base_url', 'https://www.broadwayandmain.com/playbill_app/api/joomla');
 $public_base_url = $params->get('public_base_url', 'https://www.broadwayandmain.com/playbill_app/public');
@@ -40,6 +41,7 @@ if (!empty($current_query)) {
 
 $current_uri = Uri::getInstance();
 $is_profile_page = $input->getInt('id', 0) > 0 && in_array($input->getString('type', ''), ['actor', 'show', 'theater']);
+
 
 if ($results_page_id) {
     $search_url = 'index.php?Itemid=' . $results_page_id;
@@ -106,7 +108,7 @@ if ($results_page_id) {
         if (!empty($filtered_actors)): ?>
         <div class="playbill-results-section" style="margin-bottom: 30px;">
             <h3 style="font-size: 22px; font-weight: 600; margin-bottom: 20px; color: #1f2937; border-bottom: 3px solid #667eea; padding-bottom: 12px;">
-                Actors (<?php echo count($filtered_actors); ?>)
+            Actors (<?php echo count($filtered_actors); ?>)
             </h3>
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <?php foreach ($filtered_actors as $actor): ?>
@@ -115,37 +117,36 @@ if ($results_page_id) {
                         $actor_id = (int)($actor['id'] ?? 0);
                         if ($actor_id <= 0) {
                             echo '#';
+                            $final_url = '#';
                         } else {
+                            $url = '';
                             if ($actor_profile_page_id > 0) {
-                                $url = 'index.php?Itemid=' . $actor_profile_page_id . '&id=' . $actor_id . '&type=actor';
-                            } elseif (!empty($actor_profile_url) && strpos($actor_profile_url, 'Itemid=') !== false) {
-                                if (strpos($actor_profile_url, '?') !== false) {
-                                    $separator = '&';
+                                $url = Route::_('index.php?Itemid=' . $actor_profile_page_id . '&actor_id=' . $actor_id . '&type=actor', false);
+                            } elseif (!empty($actor_profile_url)) {
+                                if (strpos($actor_profile_url, 'Itemid=') !== false) {
+                                    $separator = (strpos($actor_profile_url, '?') !== false) ? '&' : '?';
+                                    $url = Route::_($actor_profile_url . $separator . 'actor_id=' . $actor_id . '&type=actor', false);
                                 } else {
-                                    $separator = '?';
-                                }
-                                $url = $actor_profile_url . $separator . 'id=' . $actor_id . '&type=actor';
-                            } elseif (!empty($actor_profile_url) && strpos($actor_profile_url, 'index.php') !== false && strpos($actor_profile_url, 'Itemid=') === false) {
-                                $base = rtrim($public_base_url, '/');
-                                $url = $base . '/actor/' . $actor_id;
-                            } elseif (!empty($actor_profile_url) && (strpos($actor_profile_url, 'http://') === 0 || strpos($actor_profile_url, 'https://') === 0)) {
-                                $base = rtrim($actor_profile_url, '/');
-                                if (strpos($base, '/public') !== false) {
-                                    $url = $base . '/actor/' . $actor_id;
-                                } elseif (strpos($base, '/actor') === false) {
-                                    $url = $base . '/public/actor/' . $actor_id;
-                                } else {
-                                    $url = $base . '/' . $actor_id;
+                                    $base_url = $actor_profile_url;
+                                    if (strpos($base_url, '?') !== false) {
+                                        $base_url .= '&actor_id=' . $actor_id . '&type=actor';
+                                    } else {
+                                        $base_url .= '?actor_id=' . $actor_id . '&type=actor';
+                                    }
+                                    $url = Route::_($base_url, false);
                                 }
                             } else {
-                                $base = rtrim($public_base_url, '/');
-                                $url = $base . '/actor/' . $actor_id;
+                                $url = Route::_('index.php?actor_id=' . $actor_id . '&type=actor', false);
                             }
+                            $final_url = $url;
                             echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
                         }
                     ?>" 
                        target="_blank" 
                        rel="noopener noreferrer"
+                       data-actor-id="<?php echo $actor_id; ?>"
+                       data-actor-name="<?php echo htmlspecialchars($actor['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                       class="playbill-actor-link"
                        style="color: #4f46e5; text-decoration: none; font-weight: 500; font-size: 16px; display: block;">
                         <?php echo htmlspecialchars($actor['name']); ?>
                         <span style="color: #6b7280; font-size: 14px; margin-left: 10px; font-weight: normal;">
@@ -275,6 +276,64 @@ if ($results_page_id) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== Playbill Search Module Debug ===');
+    
+    const actorLinks = document.querySelectorAll('.playbill-actor-link');
+    console.log('=== ACTOR LINKS SUMMARY ===');
+    console.log('Total actor links found:', actorLinks.length);
+    console.log('');
+    
+    const actorData = [];
+    
+    actorLinks.forEach(function(link, index) {
+        const actorId = link.getAttribute('data-actor-id');
+        const actorName = link.getAttribute('data-actor-name');
+        const actualHref = link.getAttribute('href');
+        const absoluteUrl = link.href;
+        
+        actorData.push({
+            index: index + 1,
+            id: actorId,
+            name: actorName,
+            href: actualHref,
+            absoluteUrl: absoluteUrl
+        });
+        
+        console.log('Actor #' + (index + 1) + ':', {
+            id: actorId,
+            name: actorName,
+            href: actualHref,
+            absoluteUrl: absoluteUrl
+        });
+        
+        link.addEventListener('click', function(e) {
+            console.log('=== Actor Link Clicked ===');
+            console.log('Actor ID:', actorId);
+            console.log('Actor Name:', actorName);
+            console.log('Relative href:', actualHref);
+            console.log('Absolute URL:', absoluteUrl);
+            
+            if (absoluteUrl && absoluteUrl !== '#' && !absoluteUrl.startsWith('javascript:')) {
+                fetch(absoluteUrl, { method: 'HEAD', mode: 'no-cors' })
+                    .then(function(response) {
+                        console.log('Pre-flight check completed for:', absoluteUrl);
+                    })
+                    .catch(function(error) {
+                        console.warn('Pre-flight check failed (may be CORS or 404):', absoluteUrl);
+                    });
+            }
+        });
+    });
+    
+    console.log('');
+    console.log('=== ACTOR URLS TABLE ===');
+    console.table(actorData);
+    console.log('');
+    console.log('To test a URL, copy it from the table above and paste it in a new tab.');
+    console.log('If you see a 404, note the Actor ID and URL from the table.');
+    console.log('=== END DEBUG INFO ===');
+    console.log('');
+    
     const filterType = document.getElementById('playbill-filter-type');
     const hiddenType = document.getElementById('playbill-type-hidden');
     
